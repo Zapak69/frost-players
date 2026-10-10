@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Player | Frost Players</title>
+<meta name="description" content="A FrostClient player profile: skin, Frost cape, playtime and capes.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="players.css">
+</head>
+<body>
+<div class="topo-bg" aria-hidden="true">
+  <svg viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <path class="tline" d="M-100,200 C100,180 250,240 400,200 S650,140 800,200 S1050,280 1200,220 S1400,160 1500,200"/>
+    <path class="tline" d="M-100,340 C60,320 180,380 360,340 S580,255 740,330 S980,400 1160,345 S1360,290 1500,335"/>
+    <path class="tline" d="M-100,500 C20,480 140,540 320,500 S540,405 700,490 S940,545 1120,490 S1320,440 1500,490"/>
+    <path class="tline" d="M-100,660 C-20,640 100,700 280,660 S500,560 660,645 S900,705 1080,650 S1280,598 1500,648"/>
+    <path class="tline" d="M200,100 C300,80 380,150 450,100 S600,40 700,110 S820,180 940,120 S1100,60 1200,100"/>
+    <path class="tline" d="M250,820 C350,800 430,870 500,820 S650,755 750,825 S870,895 990,835 S1150,775 1250,820"/>
+  </svg>
+</div>
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="./"><img src="favicon.ico" alt=""/><span>FROST</span> <span class="nav-logo-accent">PLAYERS</span></a>
+    <div class="nav-right">
+      <a class="nav-link" href="https://store.frostclient.eu">Store</a>
+      <a class="nav-link" href="https://frostclient.eu">FrostClient</a>
+      <form class="search search--nav" role="search" action="player" novalidate>
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" name="q" placeholder="Search" aria-label="Search players by Minecraft username or Discord ID" autocomplete="off" spellcheck="false"/>
+        <button type="submit">Search</button>
+      </form>
+    </div>
+  </div>
+</nav>
+<main id="main">
+  <section class="profile" id="profile" aria-busy="true">
+    <div class="viewer-card" id="viewerCard"></div>
+    <div class="info" id="info">
+      <div class="skeleton skel-name"></div>
+      <div class="skeleton skel-stats"></div>
+      <div class="skeleton skel-stats"></div>
+    </div>
+  </section>
+  <section class="section" id="capesSection" hidden>
+    <div class="section-head"><h2>Capes</h2><span class="section-count" id="capesCount"></span></div>
+    <div class="capes-grid" id="capesGrid"></div>
+  </section>
+  <section class="state" id="state" hidden></section>
+</main>
+<footer>
+  <a href="https://frostclient.eu">FrostClient</a> · <a href="https://frostclient.eu/privacy.html">Privacy</a> · <a href="https://frostclient.eu/terms.html">Terms</a> · Not affiliated with Minecraft or Mojang.
+</footer>
+<script src="skinview3d.js"></script>
+<script src="players.js"></script>
+<script src="player.js"></script>
+</body>
+</html>
