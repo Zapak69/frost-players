@@ -43,6 +43,18 @@
     return hours.toLocaleString('en-US') + ' h' + (rest && hours < 100 ? ' ' + rest + ' min' : '');
   }
 
+  function timeAgo(date) {
+    const sec = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+    if (sec < 120) return 'just now';
+    const min = Math.round(sec / 60);
+    if (min < 60) return min + ' minutes ago';
+    const hours = Math.round(min / 60);
+    if (hours < 24) return hours === 1 ? '1 hour ago' : hours + ' hours ago';
+    const days = Math.round(hours / 24);
+    if (days < 30) return days === 1 ? 'yesterday' : days + ' days ago';
+    return 'on ' + date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   function formatDate(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return null;
@@ -70,69 +82,59 @@
     }
   }
 
-  function decodeGifFrames(url) {
-    if (typeof ImageDecoder === 'undefined') return Promise.resolve([]);
-    return fetch(url).then(function (r) {
+  function drawCapeFrame(canvas) {
+    try {
+      const ctx = viewer.capeCanvas.getContext('2d');
+      ctx.clearRect(0, 0, viewer.capeCanvas.width, viewer.capeCanvas.height);
+      ctx.drawImage(canvas, 0, 0, viewer.capeCanvas.width, viewer.capeCanvas.height);
+      if (viewer.capeTexture) viewer.capeTexture.needsUpdate = true;
+    } catch (err) {}
+  }
+
+  function animateCape(url) {
+    if (!window.FrostGif) return;
+    const frames = [];
+    let done = false;
+    let idx = 0;
+    let started = false;
+    function step() {
+      if (idx >= frames.length) {
+        if (done && frames.length > 1) idx = 0;
+        else {
+          animTimer = setTimeout(step, 40);
+          return;
+        }
+      }
+      const frame = frames[idx++];
+      drawCapeFrame(frame.canvas);
+      animTimer = setTimeout(step, frame.delay);
+    }
+    fetch(url).then(function (r) {
       if (!r.ok) throw new Error('http_' + r.status);
       return r.arrayBuffer();
     }).then(function (buffer) {
-      const decoder = new ImageDecoder({ data: buffer, type: 'image/gif' });
-      return decoder.tracks.ready.then(function () {
-        const track = decoder.tracks.selectedTrack;
-        const count = track ? track.frameCount : 0;
-        const step = Math.max(1, Math.ceil(count / ANIM_MAX_FRAMES));
-        const frames = [];
-        let chain = Promise.resolve();
-        for (let i = 0; i < count; i += step) {
-          (function (idx) {
-            chain = chain.then(function () {
-              return decoder.decode({ frameIndex: idx }).then(function (result) {
-                const image = result.image;
-                const c = document.createElement('canvas');
-                c.width = ANIM_W;
-                c.height = ANIM_H;
-                c.getContext('2d').drawImage(image, 0, 0, ANIM_W, ANIM_H);
-                frames.push({ canvas: c, delay: (image.duration ? Math.max(30, image.duration / 1000) : 100) * step });
-                image.close();
-              });
-            });
-          })(i);
+      return window.FrostGif.decode(buffer, { width: ANIM_W, height: ANIM_H, maxFrames: ANIM_MAX_FRAMES }, function (frame) {
+        frames.push(frame);
+        if (!started && frames.length >= 2) {
+          started = true;
+          step();
         }
-        return chain.then(function () {
-          decoder.close();
-          return frames;
-        });
       });
+    }).then(function () {
+        done = true;
     }).catch(function () {
-        return [];
+        done = true;
     });
-  }
-
-  function playFrames(frames) {
-    if (!viewer || frames.length < 2) return;
-    let idx = 0;
-    (function step() {
-      const frame = frames[idx];
-      idx = (idx + 1) % frames.length;
-      try {
-        const ctx = viewer.capeCanvas.getContext('2d');
-        ctx.clearRect(0, 0, viewer.capeCanvas.width, viewer.capeCanvas.height);
-        ctx.drawImage(frame.canvas, 0, 0, viewer.capeCanvas.width, viewer.capeCanvas.height);
-        if (viewer.capeTexture) viewer.capeTexture.needsUpdate = true;
-      } catch (err) {}
-      animTimer = setTimeout(step, frame.delay);
-    })();
   }
 
   function loadCape(cape) {
     if (!viewer || !cape) return;
     const result = viewer.loadCape(capeUrl(cape.file));
-    if (result && result.then) {
-      result.then(function () {
-        if (!cape.animated || !cape.animatedFile) return;
-        decodeGifFrames(capeUrl(cape.animatedFile)).then(playFrames);
-      }).catch(function () {});
-    }
+    const animate = function () {
+        if (cape.animated && cape.animatedFile) animateCape(capeUrl(cape.animatedFile));
+    };
+    if (result && result.then) result.then(animate).catch(function () {});
+    else animate();
   }
 
   function startViewer(data) {
@@ -199,7 +201,13 @@
       nameRow.appendChild(lite);
     }
     if (data.online !== null && data.online !== undefined) {
-      nameRow.appendChild(el('span', 'status-pill' + (data.online ? ' is-online' : ''), data.online ? 'Playing now' : 'Offline'));
+      const pill = el('span', 'status-pill' + (data.online ? ' is-online' : ''), data.online ? 'Playing now' : 'Offline');
+      const last = !data.online && data.lastSeen ? new Date(data.lastSeen) : null;
+      if (last && !isNaN(last.getTime())) {
+        pill.textContent = 'Last active ' + timeAgo(last);
+        pill.title = last.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+      }
+      nameRow.appendChild(pill);
     }
     infoEl.appendChild(nameRow);
     if (data.discord) {
@@ -271,8 +279,8 @@
     renderInfo(data);
     renderCapes(data);
     startViewer(data);
-    const canonical = 'player?nick=' + encodeURIComponent(data.name);
-    if (window.location.pathname + window.location.search !== canonical) {
+    const canonical = window.FrostPlayers.playerPage + '?nick=' + encodeURIComponent(data.name);
+    if (window.location.search !== canonical.slice(canonical.indexOf('?'))) {
       try {
           history.replaceState(null, '', canonical);
       } catch (e) {}
