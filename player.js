@@ -241,6 +241,7 @@
     const since = data.memberSince ? formatDate(data.memberSince) : null;
     if (since) stats.appendChild(stat('Member since', since, null));
     else stats.appendChild(stat('Member since', data.earlyPlayer ? 'Early player' : 'Unknown', data.earlyPlayer ? 'before October 2026' : null, !data.earlyPlayer));
+    if (typeof data.views === 'number') stats.appendChild(stat('Profile views', data.views.toLocaleString('en-US'), data.views === 1 ? 'unique visit' : 'unique visits'));
     infoEl.appendChild(stats);
     if (data.cape) {
       const eq = el('div', 'equipped');
