@@ -766,3 +766,31 @@ footer a:hover {
 .capes-grid .empty-note {
   grid-column: 1 / -1;
 }
+
+.badge-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border-radius: 980px;
+  padding: 6px 12px;
+}
+
+.badge-rank svg {
+  width: 13px;
+  height: 13px;
+}
+
+.badge-rank--staff {
+  color: #06121c;
+  background: linear-gradient(100deg, #4fc8f8, #1a7fc4);
+  box-shadow: 0 6px 22px -8px rgba(79,200,248,0.6);
+}
+
+.badge-rank--owner {
+  color: #1a1400;
+  background: linear-gradient(100deg, #ffd60a, #ff9f0a);
+  box-shadow: 0 6px 22px -8px rgba(255,214,10,0.6);
+}
