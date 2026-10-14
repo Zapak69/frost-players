@@ -206,7 +206,21 @@
       const lite = el('span', 'badge-lite');
       lite.innerHTML = ICON_LITE;
       lite.appendChild(document.createTextNode('LITE'));
-      lite.title = 'FrostClient Lite subscriber';
+      const plans = {
+        annual: ['Active FrostClient Lite subscription', 'Yearly plan'],
+        monthly: ['Active FrostClient Lite subscription', 'Monthly plan'],
+        gifted: ['FrostClient Lite is gifted', 'Someone gifted this player Lite'],
+        boost: ['Active FrostClient Lite', 'Server boost reward']
+      };
+      const info = plans[data.litePlan] || ['Active FrostClient Lite subscription', ''];
+      if (data.litePlan === 'annual') lite.classList.add('badge-lite--annual');
+      if (data.litePlan === 'gifted') lite.classList.add('badge-lite--gifted');
+      lite.tabIndex = 0;
+      lite.setAttribute('aria-label', info[0] + (info[1] ? ', ' + info[1] : ''));
+      const tip = el('span', 'badge-tip');
+      tip.appendChild(el('span', 'badge-tip-title', info[0]));
+      if (info[1]) tip.appendChild(el('span', 'badge-tip-sub', info[1]));
+      lite.appendChild(tip);
       nameRow.appendChild(lite);
     }
     if (data.online !== null && data.online !== undefined) {
