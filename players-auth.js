@@ -1,9 +1,11 @@
 (function () {
   const TOKEN_KEY = 'frostPlayersToken';
   const PRIVACY_URL = 'https://bot.frostclient.eu/site/privacy';
+  const FRIENDS_URL = 'https://bot.frostclient.eu/site/friends';
   const MAIN_LOGIN = 'https://frostclient.eu/?players_login=';
   const SAFE_PATH = /^\/(?!\/)[A-Za-z0-9_\/?=&%.-]*$/;
   let privacyPromise = null;
+  let friendsPromise = null;
 
   function loadToken() {
     try {
@@ -21,6 +23,7 @@
 
   function clearToken() {
     privacyPromise = null;
+    friendsPromise = null;
     try {
         localStorage.removeItem(TOKEN_KEY);
     } catch (e) {}
@@ -99,6 +102,48 @@
     });
   }
 
+  function postFriends(body) {
+    return fetch(FRIENDS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      cache: 'no-store'
+    }).then(function (r) {
+        return r.json();
+    }).then(function (res) {
+      if (res && res.error === 'token_expired') {
+        clearToken();
+        renderNav(null);
+        const err = new Error('token_expired');
+        err.expired = true;
+        throw err;
+      }
+      return res || { ok: false, error: 'failed' };
+    });
+  }
+
+  function getFriends(force) {
+    const token = loadToken();
+    if (!token) return Promise.resolve(null);
+    if (!friendsPromise || force) friendsPromise = postFriends({ token: token }).catch(function (err) {
+      friendsPromise = null;
+      throw err;
+    });
+    return friendsPromise;
+  }
+
+  function friendAction(action, extra) {
+    const token = loadToken();
+    if (!token) return Promise.reject(new Error('signed_out'));
+    return postFriends(Object.assign({ token: token, action: action }, extra || {})).then(function (res) {
+      if (res && res.me) {
+        friendsPromise = Promise.resolve(Object.assign({}, res, { ok: true, error: undefined }));
+        document.dispatchEvent(new CustomEvent('frost-friends', { detail: res }));
+      }
+      return res;
+    });
+  }
+
   function renderNav(data) {
     const slot = document.getElementById('navAccount');
     if (!slot) return;
@@ -121,7 +166,7 @@
   }
 
   consumeHandoff();
-  window.FrostPlayersAuth = { loadToken: loadToken, login: login, logout: logout, getPrivacy: getPrivacy, savePrivacy: savePrivacy, saveSocials: saveSocials };
+  window.FrostPlayersAuth = { loadToken: loadToken, login: login, logout: logout, getPrivacy: getPrivacy, savePrivacy: savePrivacy, saveSocials: saveSocials, getFriends: getFriends, friendAction: friendAction };
   document.addEventListener('DOMContentLoaded', function () {
     renderNav(null);
     getPrivacy().then(renderNav).catch(function () {});

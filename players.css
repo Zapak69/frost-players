@@ -437,7 +437,9 @@ main {
 .badge-lite:hover .badge-tip,
 .badge-lite:focus-visible .badge-tip,
 .badge-creator:hover .badge-tip,
-.badge-creator:focus-visible .badge-tip {
+.badge-creator:focus-visible .badge-tip,
+.name-wrap.is-friend:hover .badge-tip,
+.name-wrap.is-friend:focus-visible .badge-tip {
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, 0);
@@ -1259,6 +1261,400 @@ body.modal-open {
   }
 }
 
+.name-wrap {
+  position: relative;
+  display: inline-flex;
+  outline: none;
+}
+
+.name-wrap.is-friend h1 {
+  color: var(--green);
+  cursor: default;
+}
+
+.name-wrap .badge-tip {
+  font-size: 12px;
+}
+
+.friend-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.friend-btn[hidden] {
+  display: none;
+}
+
+.friend-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.24);
+}
+
+.friend-btn.is-primary {
+  border-color: transparent;
+  background: var(--green);
+  color: #03170a;
+}
+
+.friend-btn.is-primary:hover:not(:disabled) {
+  background: var(--green);
+  filter: brightness(1.08);
+}
+
+.friend-btn.is-remove:hover:not(:disabled) {
+  border-color: rgba(255,105,97,0.5);
+  color: var(--red);
+  background: rgba(255,105,97,0.08);
+}
+
+.friend-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.friend-btn:focus-visible, .nav-friends-btn:focus-visible, .friend-remove:focus-visible, .friend-main:focus-visible, .friend-action:focus-visible, .btn-ghost:focus-visible, .btn-danger:focus-visible {
+  outline: 2px solid var(--frost-blue);
+  outline-offset: 2px;
+}
+
+.friend-note {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.friend-note:empty {
+  display: none;
+}
+
+.nav-friends {
+  position: relative;
+}
+
+.nav-friends-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.nav-friends-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.nav-friends-btn:hover, .nav-friends-btn[aria-expanded="true"] {
+  background: rgba(255,255,255,0.06);
+}
+
+.nav-friends-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+.nav-friends-badge[hidden] {
+  display: none;
+}
+
+.friends-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 120;
+  width: 300px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: 0 24px 60px -20px rgba(0,0,0,0.8);
+}
+
+.friends-dropdown::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -12px;
+  height: 12px;
+}
+
+.friends-dropdown[hidden] {
+  display: none;
+}
+
+.friends-dropdown-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 6px 8px 8px;
+}
+
+.friends-dropdown-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.friends-dropdown-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.friends-requests-link {
+  display: block;
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(50,215,75,0.1);
+  color: var(--green);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.friends-requests-link:hover {
+  background: rgba(50,215,75,0.16);
+}
+
+.friends-empty {
+  margin: 4px 8px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.friend-row:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.friend-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.friend-head {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--surface3);
+  image-rendering: pixelated;
+}
+
+.friend-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.friend-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-status {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-row.is-online .friend-status {
+  color: var(--green);
+}
+
+.friend-remove {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--red);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.friend-remove svg {
+  width: 14px;
+  height: 14px;
+}
+
+.friend-remove:hover {
+  opacity: 1;
+  background: rgba(255,105,97,0.12);
+}
+
+.friends-all-link {
+  display: block;
+  margin-top: 6px;
+  padding: 9px 8px 5px;
+  border-top: 1px solid var(--border);
+  color: var(--frost-blue);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.friends-all-link:hover {
+  text-decoration: underline;
+}
+
+.modal--confirm {
+  width: 380px;
+  padding: 22px;
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  letter-spacing: -0.3px;
+  overflow-wrap: anywhere;
+}
+
+.confirm-text {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-ghost, .btn-danger, .friend-action {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-ghost:hover, .friend-action:hover:not(:disabled) {
+  background: rgba(255,255,255,0.06);
+}
+
+.btn-danger {
+  border-color: transparent;
+  background: var(--red);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.08);
+}
+
+.friend-action.is-primary {
+  border-color: transparent;
+  background: var(--green);
+  color: #03170a;
+}
+
+.friend-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.friend-actions {
+  display: flex;
+  gap: 6px;
+  margin-right: 6px;
+}
+
+.friends-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 36px 0 64px;
+}
+
+.friends-page-head h1 {
+  margin: 0;
+  font-size: 32px;
+  letter-spacing: -0.8px;
+}
+
+.friends-page-sub {
+  margin: 6px 0 24px;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+
+.friends-section {
+  margin-bottom: 28px;
+}
+
+.friends-list {
+  border-top: 1px solid var(--border);
+}
+
+.friends-list .friend-row {
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 4px 0;
+}
+
+.friends-list .friend-head {
+  width: 36px;
+  height: 36px;
+}
+
 @media (max-width: 860px) {
   .profile {
     grid-template-columns: minmax(0, 1fr);
@@ -1277,6 +1673,13 @@ body.modal-open {
 }
 
 @media (max-width: 560px) {
+  .friends-dropdown {
+    position: fixed;
+    top: 72px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
   main {
     padding: 0 16px;
   }

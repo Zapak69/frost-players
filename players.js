@@ -4,7 +4,7 @@
 
   const LOCAL = window.location.protocol === 'file:';
   const PLAYER_PAGE = LOCAL ? 'player.html' : 'player';
-  const RESERVED = ['player', 'index', 'settings', '404'];
+  const RESERVED = ['player', 'index', 'settings', 'friends', '404'];
 
   function prettyPath(value) {
     const q = String(value || '').trim();

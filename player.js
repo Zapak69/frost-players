@@ -20,6 +20,7 @@
     { key: 'showPlaytime', label: 'Show playtime', hint: 'Your total FrostClient playtime.' },
     { key: 'showOnline', label: 'Show online status', hint: 'Whether you are playing right now, and when you were last active.' },
     { key: 'showDiscord', label: 'Show Discord account', hint: 'Your Discord name. People can also find you by your Discord ID.' },
+    { key: 'showCapes', label: 'Show my cape collection', hint: 'When off, visitors only see the cape you have equipped.' },
     { key: 'privateProfile', label: 'Private profile', hint: 'Hide everything. Visitors only see that the profile is private.', lite: true }
   ];
 
@@ -42,7 +43,9 @@
   } catch (e) {}
   if (/^(player|player\.html|404|404\.html|index\.html)$/i.test(pathSeg) || pathSeg.indexOf('/') !== -1) pathSeg = '';
   const isSettingsRoute = pathSeg.toLowerCase() === 'settings';
-  const rawQuery = String(params.get('nick') || params.get('id') || params.get('q') || (isSettingsRoute ? '' : pathSeg)).trim();
+  const isFriendsRoute = pathSeg.toLowerCase() === 'friends';
+  const rawQuery = String(params.get('nick') || params.get('id') || params.get('q') || (isSettingsRoute || isFriendsRoute ? '' : pathSeg)).trim();
+  const friendsApi = window.FrostFriends;
   const auth = window.FrostPlayersAuth;
   const profileEl = document.getElementById('profile');
   const infoEl = document.getElementById('info');
@@ -221,13 +224,26 @@
   function renderInfo(data) {
     infoEl.innerHTML = '';
     const nameRow = el('div', 'name-row');
-    nameRow.appendChild(el('h1', null, data.name));
+    const nameWrap = el('span', 'name-wrap');
+    nameWrap.appendChild(el('h1', null, data.name));
+    nameRow.appendChild(nameWrap);
     if (data.rank === 'owner' || data.rank === 'staff') {
       const rank = el('span', 'badge-rank badge-rank--' + data.rank);
       rank.innerHTML = data.rank === 'owner' ? ICON_CROWN : ICON_SHIELD;
       rank.appendChild(document.createTextNode(data.rank === 'owner' ? 'OWNER' : 'STAFF'));
       rank.title = data.rank === 'owner' ? 'FrostClient owner' : 'FrostClient staff team';
       nameRow.appendChild(rank);
+    }
+    if (data.creatorTier && CREATOR_TIERS[data.creatorTier]) {
+      const tier = CREATOR_TIERS[data.creatorTier];
+      const badge = el('span', 'badge-creator badge-creator--' + data.creatorTier, tier.label);
+      badge.tabIndex = 0;
+      badge.setAttribute('aria-label', tier.title + ', ' + tier.sub);
+      const tip = el('span', 'badge-tip');
+      tip.appendChild(el('span', 'badge-tip-title', tier.title));
+      tip.appendChild(el('span', 'badge-tip-sub', tier.sub));
+      badge.appendChild(tip);
+      nameRow.appendChild(badge);
     }
     if (data.lite) {
       const lite = el('span', 'badge-lite');
@@ -249,17 +265,6 @@
       if (info[1]) tip.appendChild(el('span', 'badge-tip-sub', info[1]));
       lite.appendChild(tip);
       nameRow.appendChild(lite);
-    }
-    if (data.creatorTier && CREATOR_TIERS[data.creatorTier]) {
-      const tier = CREATOR_TIERS[data.creatorTier];
-      const badge = el('span', 'badge-creator badge-creator--' + data.creatorTier, tier.label);
-      badge.tabIndex = 0;
-      badge.setAttribute('aria-label', tier.title + ', ' + tier.sub);
-      const tip = el('span', 'badge-tip');
-      tip.appendChild(el('span', 'badge-tip-title', tier.title));
-      tip.appendChild(el('span', 'badge-tip-sub', tier.sub));
-      badge.appendChild(tip);
-      nameRow.appendChild(badge);
     }
     if (data.online !== null && data.online !== undefined) {
       const pill = el('span', 'status-pill' + (data.online ? ' is-online' : ''), data.online ? 'Playing now' : 'Offline');
@@ -289,7 +294,9 @@
     if (data.playtimeMs === null || data.playtimeMs === undefined) stats.appendChild(stat('Playtime', 'Hidden', 'by the player', true));
     else stats.appendChild(stat('Playtime', formatPlaytime(data.playtimeMs), 'on FrostClient'));
     const capeCount = (data.capes || []).length;
-    stats.appendChild(stat('Capes owned', String(capeCount), capeCount === 1 ? 'Frost cape' : 'Frost capes'));
+    if (data.capesHidden) stats.appendChild(stat('Capes owned', 'Private', 'hidden by the player', true));
+    else if (data.capesUnknown) stats.appendChild(stat('Capes owned', '—', 'couldn’t load right now', true));
+    else stats.appendChild(stat('Capes owned', String(capeCount), capeCount === 1 ? 'Frost cape' : 'Frost capes'));
     const since = data.memberSince ? formatDate(data.memberSince) : null;
     if (since) stats.appendChild(stat('Member since', since, null));
     else stats.appendChild(stat('Member since', data.earlyPlayer ? 'Early player' : 'Unknown', data.earlyPlayer ? 'before October 2026' : null, !data.earlyPlayer));
@@ -314,10 +321,14 @@
     const capes = (data.capes || []).slice().sort(function (a, b) {
       const eqA = data.cape && data.cape.id === a.id ? 0 : 1;
       const eqB = data.cape && data.cape.id === b.id ? 0 : 1;
-      return eqA - eqB || String(a.name).localeCompare(String(b.name));
+      return eqA - eqB || String(a.name).localeCompare(String(b.name), 'en', { sensitivity: 'base' });
     });
     document.getElementById('capesCount').textContent = capes.length ? String(capes.length) : '';
-    if (!capes.length) {
+    if (data.capesHidden) {
+      grid.appendChild(el('div', 'empty-note', capes.length ? 'This player keeps their cape collection private. Only the equipped cape is shown.' : 'This player keeps their cape collection private.'));
+    } else if (data.capesUnknown) {
+      grid.appendChild(el('div', 'empty-note', capes.length ? 'Only the equipped cape could be loaded right now. Refresh in a moment to see the full collection.' : 'Capes couldn’t be loaded right now. Refresh in a moment.'));
+    } else if (!capes.length) {
       grid.appendChild(el('div', 'empty-note', data.discord === null && !data.lite ? 'No Frost capes to show yet.' : 'This player has no Frost capes yet.'));
     }
     capes.forEach(function (cape) {
@@ -344,6 +355,205 @@
     startViewer(data);
     setCanonical(data.name);
     attachOwnerTools(data.name, false);
+    attachFriendTools(data);
+  }
+
+  function friendState(friends, uuid) {
+    const id = friendsApi.normUuid(uuid);
+    const match = function (list) {
+      return (list || []).find(function (f) { return friendsApi.normUuid(f.uuid) === id; }) || null;
+    };
+    if (match(friends.friends)) return { state: 'friend', entry: match(friends.friends) };
+    if (match(friends.incoming)) return { state: 'incoming', entry: match(friends.incoming) };
+    if (match(friends.outgoing)) return { state: 'outgoing', entry: match(friends.outgoing) };
+    return { state: 'none', entry: null };
+  }
+
+  function attachFriendTools(data) {
+    const nameRow = document.querySelector('#info .name-row');
+    const nameWrap = nameRow && nameRow.querySelector('.name-wrap');
+    if (!nameRow || !friendsApi) return;
+    const btn = el('button', 'friend-btn');
+    btn.type = 'button';
+    btn.hidden = true;
+    const note = el('span', 'friend-note');
+    nameRow.appendChild(btn);
+    nameRow.appendChild(note);
+    if (!auth || !auth.loadToken()) {
+      btn.hidden = false;
+      btn.textContent = 'Add friend';
+      btn.addEventListener('click', function () { auth.login(); });
+      return;
+    }
+    let current = null;
+    const paint = function (friends) {
+      note.textContent = '';
+      if (!friends || !friends.me || friendsApi.normUuid(friends.me.uuid) === friendsApi.normUuid(data.uuid)) {
+        btn.hidden = true;
+        return;
+      }
+      current = friendState(friends, data.uuid);
+      btn.hidden = false;
+      btn.disabled = false;
+      btn.className = 'friend-btn';
+      const isFriend = current.state === 'friend';
+      nameWrap.classList.toggle('is-friend', isFriend);
+      const oldTip = nameWrap.querySelector('.badge-tip');
+      if (oldTip) oldTip.remove();
+      if (isFriend) {
+        nameWrap.tabIndex = 0;
+        const tip = el('span', 'badge-tip');
+        tip.appendChild(el('span', 'badge-tip-title', 'In your friend list'));
+        nameWrap.appendChild(tip);
+      } else nameWrap.removeAttribute('tabindex');
+      if (isFriend) {
+        btn.textContent = 'Remove friend';
+        btn.classList.add('is-remove');
+      } else if (current.state === 'incoming') {
+        btn.textContent = 'Accept friend request';
+        btn.classList.add('is-primary');
+      } else if (current.state === 'outgoing') {
+        btn.textContent = 'Cancel request';
+        note.textContent = 'Request sent';
+      } else if (data.friendRequests === false) {
+        btn.textContent = 'Add friend';
+        btn.disabled = true;
+        note.textContent = 'Not accepting friend requests';
+      } else {
+        btn.textContent = 'Add friend';
+        btn.classList.add('is-primary');
+      }
+    };
+    const handle = function (promise) {
+      btn.disabled = true;
+      promise.then(function (res) {
+        if (res && res.ok === false) {
+          const msg = { requests_closed: 'Not accepting friend requests', limit: 'Your friend list is full', already_friends: 'Already friends', rate_limited: 'Too many changes, wait a minute', no_account: 'Play FrostClient once to use friends', unknown_player: 'Player not found' }[res.error] || "Couldn't update. Try again.";
+          if (res.me) paint(res);
+          note.textContent = msg;
+          if (res.error === 'requests_closed') btn.disabled = true;
+          else btn.disabled = false;
+          return;
+        }
+        if (res) paint(res);
+      }).catch(function () {
+        btn.disabled = false;
+        note.textContent = "Couldn't update. Try again.";
+      });
+    };
+    btn.addEventListener('click', function () {
+      if (!current) return;
+      if (current.state === 'friend') {
+        friendsApi.removeFriend({ uuid: current.entry.uuid, name: data.name }).then(function (res) {
+            if (res) paint(res);
+        }).catch(function () {
+            note.textContent = "Couldn't update. Try again.";
+        });
+      } else if (current.state === 'incoming') handle(auth.friendAction('accept', { uuid: current.entry.uuid }));
+      else if (current.state === 'outgoing') handle(auth.friendAction('cancel', { uuid: current.entry.uuid }));
+      else handle(auth.friendAction('add', { name: data.name }));
+    });
+    auth.getFriends().then(function (friends) {
+      if (friends && friends.error === 'no_account') {
+        btn.hidden = false;
+        btn.disabled = true;
+        btn.textContent = 'Add friend';
+        note.textContent = 'Play FrostClient once to use friends';
+        return;
+      }
+      paint(friends);
+    }).catch(function () {});
+    document.addEventListener('frost-friends', function (e) {
+        if (e.detail && e.detail.me) paint(e.detail);
+    });
+  }
+
+  function renderFriendsPage() {
+    document.title = 'Friends | Frost Players';
+    profileEl.hidden = true;
+    capesSection.hidden = true;
+    const main = document.getElementById('main');
+    const page = el('section', 'friends-page');
+    const head = el('div', 'friends-page-head');
+    head.appendChild(el('h1', null, 'Friends'));
+    const sub = el('p', 'friends-page-sub', 'Your FrostClient friends. Changes here show up in game too.');
+    head.appendChild(sub);
+    page.appendChild(head);
+    const body = el('div', 'friends-page-body');
+    body.appendChild(el('div', 'skeleton skel-stats'));
+    page.appendChild(body);
+    main.appendChild(page);
+    const section = function (title, items, build, empty) {
+      const box = el('div', 'friends-section');
+      const h = el('div', 'section-head');
+      h.appendChild(el('h2', null, title));
+      h.appendChild(el('span', 'section-count', items.length ? String(items.length) : ''));
+      box.appendChild(h);
+      const list = el('div', 'friends-list');
+      if (!items.length && empty) list.appendChild(el('p', 'friends-empty', empty));
+      items.forEach(function (item) { list.appendChild(build(item)); });
+      box.appendChild(list);
+      return box;
+    };
+    const actionBtn = function (label, cls, fn) {
+      const b = el('button', 'friend-action ' + cls, label);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        b.disabled = true;
+        fn().catch(function () {}).then(function () { b.disabled = false; });
+      });
+      return b;
+    };
+    const paint = function (data) {
+      body.innerHTML = '';
+      if (data && data.error === 'no_account') {
+        body.appendChild(el('p', 'friends-empty', 'Play FrostClient once with this Discord account to use friends.'));
+        return;
+      }
+      const incoming = data.incoming || [];
+      if (incoming.length) {
+        body.appendChild(section('Friend requests', incoming, function (req) {
+          const row = friendsApi.friendRow(req, { status: 'Wants to be your friend' });
+          const acts = el('div', 'friend-actions');
+          acts.appendChild(actionBtn('Accept', 'is-primary', function () { return auth.friendAction('accept', { uuid: req.uuid }); }));
+          acts.appendChild(actionBtn('Decline', '', function () { return auth.friendAction('decline', { uuid: req.uuid }); }));
+          row.appendChild(acts);
+          return row;
+        }));
+      }
+      const friends = friendsApi.sortFriends(data.friends);
+      body.appendChild(section('All friends', friends, function (friend) {
+        const row = friendsApi.friendRow(friend);
+        const remove = friendsApi.iconButton('friend-remove', 'Remove ' + friend.name, friendsApi.ICON_X);
+        remove.addEventListener('click', function () {
+            friendsApi.removeFriend(friend).catch(function () {});
+        });
+        row.appendChild(remove);
+        return row;
+      }, 'No friends yet. Open a player profile and press Add friend, or add friends in game.'));
+      const outgoing = data.outgoing || [];
+      if (outgoing.length) {
+        body.appendChild(section('Sent requests', outgoing, function (req) {
+          const row = friendsApi.friendRow(req, { status: 'Waiting for an answer' });
+          const acts = el('div', 'friend-actions');
+          acts.appendChild(actionBtn('Cancel', '', function () { return auth.friendAction('cancel', { uuid: req.uuid }); }));
+          row.appendChild(acts);
+          return row;
+        }));
+      }
+    };
+    if (!auth || !auth.loadToken()) {
+      auth.login('/friends');
+      return;
+    }
+    auth.getFriends(true).then(paint).catch(function (err) {
+      if (err && err.expired) return auth.login('/friends');
+      body.innerHTML = '';
+      body.appendChild(el('p', 'friends-empty', 'Couldn’t load your friends. Check your connection and try again.'));
+    });
+    document.addEventListener('frost-friends', function (e) {
+        if (e.detail && e.detail.me) paint(e.detail);
+    });
   }
 
   function setCanonical(name) {
@@ -569,6 +779,33 @@
       });
       list.appendChild(row);
     });
+    auth.getFriends().then(function (friends) {
+      if (!friends || !friends.settings || list.querySelector('.settings-row--friends')) return;
+      const row = el('label', 'settings-row settings-row--friends');
+      const text = el('div', 'settings-text');
+      text.appendChild(el('div', 'settings-label', 'Allow friend requests'));
+      text.appendChild(el('div', 'settings-hint', 'Let other players send you friend requests here and in game.'));
+      const sw = el('span', 'switch');
+      const input = el('input');
+      input.type = 'checkbox';
+      input.checked = friends.settings.acceptRequests !== false;
+      input.setAttribute('aria-label', 'Allow friend requests');
+      sw.appendChild(input);
+      sw.appendChild(el('span', 'switch-track'));
+      row.appendChild(text);
+      row.appendChild(sw);
+      input.addEventListener('change', function () {
+        setSettingsStatus('Saving...', '');
+        auth.friendAction('settings', { acceptRequests: input.checked }).then(function (res) {
+          if (!res || !res.ok) throw new Error('failed');
+          setSettingsStatus('Saved.', 'ok');
+        }).catch(function () {
+          input.checked = !input.checked;
+          setSettingsStatus("Couldn't save. Check your connection and try again.", 'error');
+        });
+      });
+      list.appendChild(row);
+    }).catch(function () {});
   }
 
   function renderSocials(socials) {
@@ -645,6 +882,11 @@
 
   if (isSettingsRoute) {
     handleSettingsRoute();
+    return;
+  }
+
+  if (isFriendsRoute) {
+    renderFriendsPage();
     return;
   }
 
