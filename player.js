@@ -620,6 +620,9 @@
       panel.setAttribute('aria-labelledby', tab.id);
       panels[t.id] = panel;
     });
+    const indicator = el('span', 'modal-tab-indicator');
+    indicator.setAttribute('aria-hidden', 'true');
+    tabs.appendChild(indicator);
     tabs.addEventListener('keydown', function (e) {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
       const ids = EDIT_TABS.map(function (t) { return t.id; });
@@ -735,6 +738,9 @@
     });
     document.body.appendChild(overlay);
     editModal = overlay;
+    window.addEventListener('resize', function () {
+        if (!overlay.hidden) moveTabIndicator();
+    });
     return overlay;
   }
 
@@ -756,8 +762,8 @@
     setSettingsStatus('', '');
     setFriendStatus('', '');
     overlay.querySelector('.modal-status').textContent = '';
-    selectEditTab('privacy');
     overlay.hidden = false;
+    selectEditTab('privacy');
     document.body.classList.add('modal-open');
     overlay.querySelector('.modal-tab[aria-selected="true"]').focus();
   }
@@ -819,15 +825,65 @@
     });
   }
 
+  const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function animateModalHeight(change) {
+    const dialog = editModal && editModal.querySelector('.modal');
+    if (!dialog || editModal.hidden || REDUCED_MOTION.matches) {
+      change();
+      return;
+    }
+    const from = dialog.getBoundingClientRect().height;
+    dialog.style.transition = 'none';
+    dialog.style.height = '';
+    change();
+    const to = dialog.getBoundingClientRect().height;
+    if (Math.abs(to - from) < 2) {
+      dialog.style.transition = '';
+      return;
+    }
+    dialog.style.height = from + 'px';
+    dialog.style.overflow = 'hidden';
+    void dialog.offsetHeight;
+    dialog.style.transition = 'height 0.32s cubic-bezier(0.16, 1, 0.3, 1)';
+    dialog.style.height = to + 'px';
+    clearTimeout(dialog.heightTimer);
+    dialog.heightTimer = setTimeout(function () {
+      dialog.style.transition = '';
+      dialog.style.height = '';
+      dialog.style.overflow = '';
+    }, 340);
+  }
+
+  function moveTabIndicator() {
+    const tabs = editModal.querySelector('.modal-tabs');
+    const active = tabs.querySelector('[aria-selected="true"]');
+    const indicator = tabs.querySelector('.modal-tab-indicator');
+    if (!active || !indicator) return;
+    indicator.style.width = active.offsetWidth + 'px';
+    indicator.style.transform = 'translateX(' + (active.offsetLeft - 4) + 'px)';
+  }
+
   function selectEditTab(id) {
-    editModal.querySelectorAll('.modal-tab').forEach(function (tab) {
-      const on = tab.dataset.tab === id;
-      tab.setAttribute('aria-selected', on ? 'true' : 'false');
-      tab.tabIndex = on ? 0 : -1;
+    const previous = editModal.querySelector('.modal-tab[aria-selected="true"]');
+    const changed = !previous || previous.dataset.tab !== id;
+    animateModalHeight(function () {
+      editModal.querySelectorAll('.modal-tab').forEach(function (tab) {
+        const on = tab.dataset.tab === id;
+        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+        tab.tabIndex = on ? 0 : -1;
+      });
+      editModal.querySelectorAll('.modal-panel').forEach(function (panel) {
+        const show = panel.id === 'editPanel-' + id;
+        panel.hidden = !show;
+        panel.classList.remove('is-entering');
+        if (show && changed && previous && !REDUCED_MOTION.matches) {
+          void panel.offsetWidth;
+          panel.classList.add('is-entering');
+        }
+      });
     });
-    editModal.querySelectorAll('.modal-panel').forEach(function (panel) {
-        panel.hidden = panel.id !== 'editPanel-' + id;
-    });
+    moveTabIndicator();
     if (id === 'friends') loadFriendSettings();
   }
 
@@ -877,6 +933,10 @@
   }
 
   function renderFriendSettings(data) {
+    animateModalHeight(function () { buildFriendSettings(data); });
+  }
+
+  function buildFriendSettings(data) {
     const body = editModal.querySelector('.friend-settings-body');
     body.innerHTML = '';
     if (!data || !data.settings) {
