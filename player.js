@@ -1,7 +1,7 @@
 (function () {
   const API = 'https://bot.frostclient.eu/players/profile';
   const CAPES_BASE = 'https://bot.frostclient.eu/launcher/capes/';
-  const STORE_CAPE = 'https://store.frostclient.eu/cape?id=';
+  const STORE_CAPE = 'https://store.frostclient.eu/cloak?id=';
   const DEFAULT_CAPE = { id: 'default', name: 'Default', file: 'default.png', animated: false, mature: false };
   const ANIM_W = 512;
   const ANIM_H = 256;
@@ -20,7 +20,7 @@
     { key: 'showPlaytime', label: 'Show playtime', hint: 'Your total FrostClient playtime.' },
     { key: 'showOnline', label: 'Show online status', hint: 'Whether you are playing right now, and when you were last active.' },
     { key: 'showDiscord', label: 'Show Discord account', hint: 'Your Discord name. People can also find you by your Discord ID.' },
-    { key: 'showCapes', label: 'Show my cape collection', hint: 'When off, visitors only see the cape you have equipped.' },
+    { key: 'showCapes', label: 'Show my cloak collection', hint: 'When off, visitors only see the cloak you have equipped.' },
     { key: 'privateProfile', label: 'Private profile', hint: 'Hide everything. Visitors only see that the profile is private.', lite: true }
   ];
 
@@ -197,7 +197,7 @@
     if (loaded && loaded.catch) loaded.catch(function () { viewer.loadSkin('skin.png'); });
     if (data.cape) {
       if (data.cape.mature) {
-        const reveal = el('button', 'viewer-mature', 'Show mature cape');
+        const reveal = el('button', 'viewer-mature', 'Show mature cloak');
         reveal.type = 'button';
         reveal.addEventListener('click', function () {
           reveal.remove();
@@ -296,9 +296,9 @@
     if (data.playtimeMs === null || data.playtimeMs === undefined) stats.appendChild(stat('Playtime', 'Hidden', 'by the player', true));
     else stats.appendChild(stat('Playtime', formatPlaytime(data.playtimeMs), 'on FrostClient'));
     const capeCount = (data.capes || []).length;
-    if (data.capesHidden) stats.appendChild(stat('Capes owned', 'Private', 'hidden by the player', true));
-    else if (data.capesUnknown) stats.appendChild(stat('Capes owned', '—', 'couldn’t load right now', true));
-    else stats.appendChild(stat('Capes owned', String(capeCount), capeCount === 1 ? 'Frost cape' : 'Frost capes'));
+    if (data.capesHidden) stats.appendChild(stat('Cloaks owned', 'Private', 'hidden by the player', true));
+    else if (data.capesUnknown) stats.appendChild(stat('Cloaks owned', '—', 'couldn’t load right now', true));
+    else stats.appendChild(stat('Cloaks owned', String(capeCount), capeCount === 1 ? 'Frost cloak' : 'Frost cloaks'));
     const since = data.memberSince ? formatDate(data.memberSince) : null;
     if (since) stats.appendChild(stat('Member since', since, null));
     else stats.appendChild(stat('Member since', data.earlyPlayer ? 'Early player' : 'Unknown', data.earlyPlayer ? 'before October 2026' : null, !data.earlyPlayer));
@@ -310,7 +310,7 @@
       if (!data.cape.mature) thumb.style.backgroundImage = 'url("' + capeUrl(data.cape.file) + '")';
       eq.appendChild(thumb);
       const text = el('div');
-      text.appendChild(el('div', 'equipped-label', 'Equipped cape'));
+      text.appendChild(el('div', 'equipped-label', 'Equipped cloak'));
       text.appendChild(el('div', 'equipped-name', data.cape.name || data.cape.id));
       eq.appendChild(text);
       infoEl.appendChild(eq);
@@ -327,11 +327,11 @@
     });
     document.getElementById('capesCount').textContent = capes.length ? String(capes.length) : '';
     if (data.capesHidden) {
-      grid.appendChild(el('div', 'empty-note', capes.length ? 'This player keeps their cape collection private. Only the equipped cape is shown.' : 'This player keeps their cape collection private.'));
+      grid.appendChild(el('div', 'empty-note', capes.length ? 'This player keeps their cloak collection private. Only the equipped cloak is shown.' : 'This player keeps their cloak collection private.'));
     } else if (data.capesUnknown) {
-      grid.appendChild(el('div', 'empty-note', capes.length ? 'Only the equipped cape could be loaded right now. Refresh in a moment to see the full collection.' : 'Capes couldn’t be loaded right now. Refresh in a moment.'));
+      grid.appendChild(el('div', 'empty-note', capes.length ? 'Only the equipped cloak could be loaded right now. Refresh in a moment to see the full collection.' : 'Cloaks couldn’t be loaded right now. Refresh in a moment.'));
     } else if (!capes.length) {
-      grid.appendChild(el('div', 'empty-note', data.discord === null && !data.lite ? 'No Frost capes to show yet.' : 'This player has no Frost capes yet.'));
+      grid.appendChild(el('div', 'empty-note', data.discord === null && !data.lite ? 'No Frost cloaks to show yet.' : 'This player has no Frost cloaks yet.'));
     }
     capes.forEach(function (cape) {
       const card = el(cape.store ? 'a' : 'div', 'cape-card' + (cape.mature ? ' is-mature' : ''));
