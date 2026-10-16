@@ -1386,7 +1386,7 @@ body.modal-open {
 .friends-dropdown {
   position: absolute;
   top: calc(100% + 10px);
-  left: 0;
+  right: 0;
   z-index: 120;
   width: 300px;
   padding: 8px;
@@ -1653,6 +1653,107 @@ body.modal-open {
 .friends-list .friend-head {
   width: 36px;
   height: 36px;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 14px 22px 0;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.modal-tab {
+  flex: 1;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.modal-tab:hover {
+  color: var(--text);
+}
+
+.modal-tab[aria-selected="true"] {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.modal-tab:focus-visible, .color-swatch:focus-visible {
+  outline: 2px solid var(--frost-blue);
+  outline-offset: 2px;
+}
+
+.modal-panel[hidden] {
+  display: none;
+}
+
+.modal-panel .modal-section {
+  border-bottom: none;
+}
+
+.settings-group + .settings-group {
+  margin-top: 18px;
+}
+
+.settings-group-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.settings-group-note {
+  margin: -2px 0 8px;
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+
+.color-row {
+  align-items: center;
+  cursor: default;
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch[aria-checked="true"] {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.friend-settings-foot {
+  margin: 14px 0 0;
 }
 
 @media (max-width: 860px) {

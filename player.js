@@ -30,6 +30,8 @@
     tiktok: { label: 'TikTok', placeholder: 'tiktok.com/@name', hosts: ['tiktok.com', 'www.tiktok.com', 'm.tiktok.com'], re: /^\/(@[A-Za-z0-9_.]{2,24})\/?$/, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h3a4 4 0 0 0 4 4v3a7 7 0 0 1-4-1.3V15a6 6 0 1 1-6-6v3.2A2.8 2.8 0 1 0 14 15z" fill="currentColor"/></svg>' },
     kick: { label: 'Kick', placeholder: 'kick.com/name', hosts: ['kick.com', 'www.kick.com'], re: /^\/([A-Za-z0-9_-]{3,25})\/?$/, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h5v5h2V6h2V3h7v6h-2v2h-2v2h2v2h2v6h-7v-3h-2v-2H9v5H4z" fill="currentColor"/></svg>' }
   };
+  const EDIT_TABS = [{ id: 'privacy', label: 'Privacy' }, { id: 'links', label: 'Linked Accounts' }, { id: 'friends', label: 'Friends' }];
+  const FRIEND_NAME_COLORS = [0x55FF55, 0x55FFFF, 0x4FC8F8, 0xFFFF55, 0xFFAA00, 0xFF5555, 0xFF55FF, 0xFFFFFF];
   const CREATOR_TIERS = {
     media: { label: 'MEDIA', title: 'FrostClient Media creator', sub: 'Makes content with Frost' },
     partner: { label: 'PARTNER', title: 'FrostClient Partner', sub: 'Official creator partner' },
@@ -599,10 +601,38 @@
     close.addEventListener('click', closeEditModal);
     head.appendChild(close);
     dialog.appendChild(head);
+    const tabs = el('div', 'modal-tabs');
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'Profile settings');
+    const panels = {};
+    EDIT_TABS.forEach(function (t) {
+      const tab = el('button', 'modal-tab', t.label);
+      tab.type = 'button';
+      tab.id = 'editTab-' + t.id;
+      tab.dataset.tab = t.id;
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-controls', 'editPanel-' + t.id);
+      tab.addEventListener('click', function () { selectEditTab(t.id); });
+      tabs.appendChild(tab);
+      const panel = el('div', 'modal-panel');
+      panel.id = 'editPanel-' + t.id;
+      panel.setAttribute('role', 'tabpanel');
+      panel.setAttribute('aria-labelledby', tab.id);
+      panels[t.id] = panel;
+    });
+    tabs.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const ids = EDIT_TABS.map(function (t) { return t.id; });
+      const current = ids.indexOf(tabs.querySelector('[aria-selected="true"]').dataset.tab);
+      const next = ids[(current + (e.key === 'ArrowRight' ? 1 : ids.length - 1)) % ids.length];
+      selectEditTab(next);
+      tabs.querySelector('[data-tab="' + next + '"]').focus();
+    });
+    dialog.appendChild(tabs);
+    EDIT_TABS.forEach(function (t) { dialog.appendChild(panels[t.id]); });
 
     const links = el('form', 'modal-section');
     links.noValidate = true;
-    links.appendChild(el('h3', null, 'Links'));
     links.appendChild(el('p', 'modal-hint', 'Shown on your profile. Only official channel links are accepted.'));
     Object.keys(SOCIAL_RULES).forEach(function (key) {
       const rule = SOCIAL_RULES[key];
@@ -671,16 +701,22 @@
           save.disabled = false;
       });
     });
-    dialog.appendChild(links);
+    panels.links.appendChild(links);
 
     const privacy = el('div', 'modal-section');
-    privacy.appendChild(el('h3', null, 'Privacy'));
-    privacy.appendChild(el('p', 'modal-hint', 'Changes are saved right away.'));
+    privacy.appendChild(el('p', 'modal-hint', 'Choose what visitors see on your profile. Changes are saved right away.'));
     const status = el('p', 'settings-status');
     status.setAttribute('role', 'status');
     privacy.appendChild(status);
     privacy.appendChild(el('div', 'settings-list'));
-    dialog.appendChild(privacy);
+    panels.privacy.appendChild(privacy);
+    const friendsBox = el('div', 'modal-section friend-settings');
+    friendsBox.appendChild(el('p', 'modal-hint', 'The same settings as in game. Changes sync to FrostClient right away.'));
+    const friendsStatus = el('p', 'settings-status friend-settings-status');
+    friendsStatus.setAttribute('role', 'status');
+    friendsBox.appendChild(friendsStatus);
+    friendsBox.appendChild(el('div', 'friend-settings-body'));
+    panels.friends.appendChild(friendsBox);
 
     const foot = el('div', 'modal-foot');
     foot.appendChild(el('span', null, 'Signed in with Discord'));
@@ -718,10 +754,12 @@
     renderSettings(editData);
     fillLinks();
     setSettingsStatus('', '');
+    setFriendStatus('', '');
     overlay.querySelector('.modal-status').textContent = '';
+    selectEditTab('privacy');
     overlay.hidden = false;
     document.body.classList.add('modal-open');
-    overlay.querySelector('input').focus();
+    overlay.querySelector('.modal-tab[aria-selected="true"]').focus();
   }
 
   function closeEditModal() {
@@ -779,33 +817,117 @@
       });
       list.appendChild(row);
     });
-    auth.getFriends().then(function (friends) {
-      if (!friends || !friends.settings || list.querySelector('.settings-row--friends')) return;
-      const row = el('label', 'settings-row settings-row--friends');
-      const text = el('div', 'settings-text');
-      text.appendChild(el('div', 'settings-label', 'Allow friend requests'));
-      text.appendChild(el('div', 'settings-hint', 'Let other players send you friend requests here and in game.'));
-      const sw = el('span', 'switch');
-      const input = el('input');
-      input.type = 'checkbox';
-      input.checked = friends.settings.acceptRequests !== false;
-      input.setAttribute('aria-label', 'Allow friend requests');
-      sw.appendChild(input);
-      sw.appendChild(el('span', 'switch-track'));
-      row.appendChild(text);
-      row.appendChild(sw);
-      input.addEventListener('change', function () {
-        setSettingsStatus('Saving...', '');
-        auth.friendAction('settings', { acceptRequests: input.checked }).then(function (res) {
-          if (!res || !res.ok) throw new Error('failed');
-          setSettingsStatus('Saved.', 'ok');
-        }).catch(function () {
-          input.checked = !input.checked;
-          setSettingsStatus("Couldn't save. Check your connection and try again.", 'error');
+  }
+
+  function selectEditTab(id) {
+    editModal.querySelectorAll('.modal-tab').forEach(function (tab) {
+      const on = tab.dataset.tab === id;
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      tab.tabIndex = on ? 0 : -1;
+    });
+    editModal.querySelectorAll('.modal-panel').forEach(function (panel) {
+        panel.hidden = panel.id !== 'editPanel-' + id;
+    });
+    if (id === 'friends') loadFriendSettings();
+  }
+
+  function settingToggle(label, hint, checked, onChange) {
+    const row = el('label', 'settings-row');
+    const text = el('div', 'settings-text');
+    text.appendChild(el('div', 'settings-label', label));
+    if (hint) text.appendChild(el('div', 'settings-hint', hint));
+    const sw = el('span', 'switch');
+    const input = el('input');
+    input.type = 'checkbox';
+    input.checked = checked;
+    input.setAttribute('aria-label', label);
+    sw.appendChild(input);
+    sw.appendChild(el('span', 'switch-track'));
+    row.appendChild(text);
+    row.appendChild(sw);
+    input.addEventListener('change', function () { onChange(input.checked, input); });
+    return row;
+  }
+
+  function setFriendStatus(text, kind) {
+    const status = editModal.querySelector('.friend-settings-status');
+    status.textContent = text || '';
+    status.className = 'settings-status friend-settings-status' + (kind ? ' is-' + kind : '');
+  }
+
+  function saveFriendSetting(patch, input) {
+    setFriendStatus('Saving...', '');
+    return auth.friendAction('settings', patch).then(function (res) {
+      if (!res || !res.ok) throw new Error('failed');
+      renderFriendSettings(res);
+      setFriendStatus('Saved and synced to your game.', 'ok');
+    }).catch(function () {
+      if (input) input.checked = !input.checked;
+      setFriendStatus("Couldn't save. Check your connection and try again.", 'error');
+    });
+  }
+
+  function loadFriendSettings() {
+    const body = editModal.querySelector('.friend-settings-body');
+    if (!body.childNodes.length) body.appendChild(el('div', 'skeleton skel-stats'));
+    auth.getFriends().then(renderFriendSettings).catch(function () {
+      body.innerHTML = '';
+      body.appendChild(el('p', 'friends-empty', "Couldn't load your friend settings. Try again in a moment."));
+    });
+  }
+
+  function renderFriendSettings(data) {
+    const body = editModal.querySelector('.friend-settings-body');
+    body.innerHTML = '';
+    if (!data || !data.settings) {
+      body.appendChild(el('p', 'friends-empty', 'Play FrostClient once with this Discord account to use friends.'));
+      return;
+    }
+    const st = data.settings;
+    const group = function (title, note) {
+      const box = el('div', 'settings-group');
+      box.appendChild(el('div', 'settings-group-title', title));
+      if (note) box.appendChild(el('div', 'settings-group-note', note));
+      const list = el('div', 'settings-list');
+      box.appendChild(list);
+      body.appendChild(box);
+      return list;
+    };
+    const requests = group('Requests');
+    requests.appendChild(settingToggle('Accept friend requests', 'Let other players send you friend requests here and in game.', st.acceptRequests !== false, function (v, input) { saveFriendSetting({ acceptRequests: v }, input); }));
+    requests.appendChild(settingToggle('Friend notifications', 'Show a pop-up in game when friends come online or send you a request.', st.toasts !== false, function (v, input) { saveFriendSetting({ toasts: v }, input); }));
+    const display = group('Display', 'Not available on 1.21.4, 1.21.5 and 1.21.10.');
+    display.appendChild(settingToggle('Friend icon next to names', 'A small icon next to your friends in the tab list and above their heads.', st.showIcon !== false, function (v, input) { saveFriendSetting({ showIcon: v }, input); }));
+    const colorOn = st.nameColorEnabled === true;
+    display.appendChild(settingToggle('Color friend names', 'Show your friends\' names in a color of your choice.', colorOn, function (v, input) { saveFriendSetting({ nameColorEnabled: v }, input); }));
+    if (colorOn) {
+      const current = Number.isInteger(st.nameColor) ? st.nameColor : FRIEND_NAME_COLORS[0];
+      const row = el('div', 'settings-row color-row');
+      row.appendChild(el('div', 'settings-label', 'Name color'));
+      const swatches = el('div', 'color-swatches');
+      swatches.setAttribute('role', 'radiogroup');
+      swatches.setAttribute('aria-label', 'Name color');
+      FRIEND_NAME_COLORS.forEach(function (rgb) {
+        const hex = '#' + rgb.toString(16).padStart(6, '0');
+        const sw = el('button', 'color-swatch');
+        sw.type = 'button';
+        sw.style.background = hex;
+        sw.setAttribute('role', 'radio');
+        sw.setAttribute('aria-checked', rgb === current ? 'true' : 'false');
+        sw.setAttribute('aria-label', hex);
+        sw.title = rgb === current ? 'Selected' : 'Use this color';
+        sw.addEventListener('click', function () {
+            if (rgb !== current) saveFriendSetting({ nameColor: rgb });
         });
+        swatches.appendChild(sw);
       });
-      list.appendChild(row);
-    }).catch(function () {});
+      row.appendChild(swatches);
+      display.appendChild(row);
+    }
+    const privacy = group('Privacy');
+    privacy.appendChild(settingToggle('Share the server you play on', null, st.shareServer !== false, function (v, input) { saveFriendSetting({ shareServer: v }, input); }));
+    privacy.appendChild(settingToggle('Share your game version', null, st.shareVersion !== false, function (v, input) { saveFriendSetting({ shareVersion: v }, input); }));
+    body.appendChild(el('p', 'modal-hint friend-settings-foot', 'Only your friends see your status, and only what you share here.'));
   }
 
   function renderSocials(socials) {
@@ -911,9 +1033,15 @@
         return;
       }
       if (res.status === 200 && data.ok) return render(data);
+      if (res.status === 404 && data.error === 'not_seen') {
+        const shown = data.name || rawQuery;
+        document.title = shown + ' | Frost Players';
+        showState(ICON_USER_X, 'Not on FrostClient yet', 'We haven’t seen ' + shown + ' playing FrostClient so far. Double-check the spelling, or search for someone else.', true);
+        return;
+      }
       if (res.status === 404) {
         document.title = 'Player not found | Frost Players';
-        showState(ICON_USER_X, 'Player not found', /^\d+$/.test(rawQuery) ? "No FrostClient player has linked and shared this Discord ID." : '“' + rawQuery + '” hasn’t played FrostClient yet, or the name doesn’t exist.', true);
+        showState(ICON_USER_X, 'Player not found', /^\d+$/.test(rawQuery) ? 'No FrostClient player has linked and shared this Discord ID.' : 'There’s no Minecraft player called “' + rawQuery + '”. Check the spelling and try again.', true);
         return;
       }
       if (res.status === 429) {

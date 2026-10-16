@@ -121,7 +121,8 @@
     panel.hidden = true;
     wrap.appendChild(btn);
     wrap.appendChild(panel);
-    right.insertBefore(wrap, right.firstChild);
+    const account = document.getElementById('navAccount');
+    right.insertBefore(wrap, account && account.parentNode === right ? account : right.firstChild);
     let closeTimer = null;
     let pinned = false;
     const open = function () {
