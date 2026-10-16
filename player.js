@@ -23,6 +23,18 @@
     { key: 'privateProfile', label: 'Private profile', hint: 'Hide everything. Visitors only see that the profile is private.', lite: true }
   ];
 
+  const SOCIAL_RULES = {
+    youtube: { label: 'YouTube', placeholder: 'youtube.com/@name', hosts: ['youtube.com', 'www.youtube.com', 'm.youtube.com'], re: /^\/(@[A-Za-z0-9_.-]{3,30}|channel\/UC[A-Za-z0-9_-]{22}|c\/[A-Za-z0-9_.-]{1,100}|user\/[A-Za-z0-9_.-]{1,100})\/?$/, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4" fill="currentColor"/><path d="m10 9 5 3-5 3z" fill="#000"/></svg>' },
+    twitch: { label: 'Twitch', placeholder: 'twitch.tv/name', hosts: ['twitch.tv', 'www.twitch.tv', 'm.twitch.tv'], re: /^\/([A-Za-z0-9_]{4,25})\/?$/, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h17v11l-5 5h-4l-3 3H7v-3H3V6z" fill="currentColor"/><path d="M11 7v5M16 7v5" stroke="#000" stroke-width="2" stroke-linecap="round"/></svg>' },
+    tiktok: { label: 'TikTok', placeholder: 'tiktok.com/@name', hosts: ['tiktok.com', 'www.tiktok.com', 'm.tiktok.com'], re: /^\/(@[A-Za-z0-9_.]{2,24})\/?$/, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h3a4 4 0 0 0 4 4v3a7 7 0 0 1-4-1.3V15a6 6 0 1 1-6-6v3.2A2.8 2.8 0 1 0 14 15z" fill="currentColor"/></svg>' },
+    kick: { label: 'Kick', placeholder: 'kick.com/name', hosts: ['kick.com', 'www.kick.com'], re: /^\/([A-Za-z0-9_-]{3,25})\/?$/, icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h5v5h2V6h2V3h7v6h-2v2h-2v2h2v2h2v6h-7v-3h-2v-2H9v5H4z" fill="currentColor"/></svg>' }
+  };
+  const CREATOR_TIERS = {
+    media: { label: 'MEDIA', title: 'FrostClient Media creator', sub: 'Makes content with Frost' },
+    partner: { label: 'PARTNER', title: 'FrostClient Partner', sub: 'Official creator partner' },
+    partner_plus: { label: 'PARTNER+', title: 'FrostClient Partner+', sub: 'Top tier creator partner' }
+  };
+
   const params = new URLSearchParams(window.location.search);
   let pathSeg = '';
   try {
@@ -238,6 +250,17 @@
       lite.appendChild(tip);
       nameRow.appendChild(lite);
     }
+    if (data.creatorTier && CREATOR_TIERS[data.creatorTier]) {
+      const tier = CREATOR_TIERS[data.creatorTier];
+      const badge = el('span', 'badge-creator badge-creator--' + data.creatorTier, tier.label);
+      badge.tabIndex = 0;
+      badge.setAttribute('aria-label', tier.title + ', ' + tier.sub);
+      const tip = el('span', 'badge-tip');
+      tip.appendChild(el('span', 'badge-tip-title', tier.title));
+      tip.appendChild(el('span', 'badge-tip-sub', tier.sub));
+      badge.appendChild(tip);
+      nameRow.appendChild(badge);
+    }
     if (data.online !== null && data.online !== undefined) {
       const pill = el('span', 'status-pill' + (data.online ? ' is-online' : ''), data.online ? 'Playing now' : 'Offline');
       const last = !data.online && data.lastSeen ? new Date(data.lastSeen) : null;
@@ -316,6 +339,7 @@
     document.title = data.name + ' | Frost Players';
     profileEl.removeAttribute('aria-busy');
     renderInfo(data);
+    renderSocials(data.socials || {});
     renderCapes(data);
     startViewer(data);
     setCanonical(data.name);
@@ -332,40 +356,185 @@
     } catch (e) {}
   }
 
-  function settingsSection() {
-    let section = document.getElementById('settingsSection');
-    if (section) return section;
-    section = el('section', 'section settings');
-    section.id = 'settingsSection';
-    section.hidden = true;
-    const head = el('div', 'section-head');
-    head.appendChild(el('h2', null, 'Profile settings'));
-    section.appendChild(head);
-    section.appendChild(el('p', 'settings-intro', 'Choose what other people see on your profile. Changes are saved right away.'));
+  let editData = null;
+  let editModal = null;
+
+  function socialValid(key, value) {
+    const rule = SOCIAL_RULES[key];
+    let url;
+    try {
+        url = new URL(/^https?:\/\//i.test(value) ? value : 'https://' + value);
+    } catch (e) {
+        return false;
+    }
+    return rule.hosts.indexOf(url.hostname.toLowerCase()) !== -1 && !url.port && !url.username && rule.re.test(url.pathname);
+  }
+
+  function buildEditModal() {
+    if (editModal) return editModal;
+    const overlay = el('div', 'modal-overlay');
+    overlay.hidden = true;
+    const dialog = el('div', 'modal');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', 'editTitle');
+    const head = el('div', 'modal-head');
+    const title = el('h2', null, 'Edit profile');
+    title.id = 'editTitle';
+    head.appendChild(title);
+    const close = el('button', 'modal-close');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close');
+    close.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+    close.addEventListener('click', closeEditModal);
+    head.appendChild(close);
+    dialog.appendChild(head);
+
+    const links = el('form', 'modal-section');
+    links.noValidate = true;
+    links.appendChild(el('h3', null, 'Links'));
+    links.appendChild(el('p', 'modal-hint', 'Shown on your profile. Only official channel links are accepted.'));
+    Object.keys(SOCIAL_RULES).forEach(function (key) {
+      const rule = SOCIAL_RULES[key];
+      const field = el('label', 'link-field');
+      const icon = el('span', 'link-field-icon');
+      icon.innerHTML = rule.icon;
+      field.appendChild(icon);
+      const input = el('input');
+      input.type = 'url';
+      input.name = key;
+      input.placeholder = rule.placeholder;
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      input.setAttribute('aria-label', rule.label + ' link');
+      input.addEventListener('input', function () {
+        field.classList.remove('is-invalid');
+        error.textContent = '';
+      });
+      field.appendChild(input);
+      links.appendChild(field);
+      const error = el('p', 'link-error');
+      error.dataset.for = key;
+      links.appendChild(error);
+    });
+    const linksFoot = el('div', 'modal-actions');
+    const linksStatus = el('span', 'modal-status');
+    linksStatus.setAttribute('role', 'status');
+    const save = el('button', 'btn-save', 'Save links');
+    save.type = 'submit';
+    linksFoot.appendChild(linksStatus);
+    linksFoot.appendChild(save);
+    links.appendChild(linksFoot);
+    links.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const socials = {};
+      let bad = false;
+      Object.keys(SOCIAL_RULES).forEach(function (key) {
+        const input = links.querySelector('input[name="' + key + '"]');
+        const value = input.value.trim();
+        const error = links.querySelector('.link-error[data-for="' + key + '"]');
+        if (value && !socialValid(key, value)) {
+          bad = true;
+          input.parentElement.classList.add('is-invalid');
+          error.textContent = 'Use your official ' + SOCIAL_RULES[key].label + ' link, like ' + SOCIAL_RULES[key].placeholder;
+        }
+        socials[key] = value;
+      });
+      if (bad) return;
+      save.disabled = true;
+      linksStatus.className = 'modal-status';
+      linksStatus.textContent = 'Saving...';
+      auth.saveSocials(socials).then(function (res) {
+        editData = res;
+        fillLinks();
+        renderSocials(res.socials || {});
+        linksStatus.className = 'modal-status is-ok';
+        linksStatus.textContent = 'Saved';
+      }).catch(function (err) {
+        linksStatus.className = 'modal-status is-error';
+        if (err && err.message === 'bad_social' && err.field) {
+          const input = links.querySelector('input[name="' + err.field + '"]');
+          if (input) input.parentElement.classList.add('is-invalid');
+          linksStatus.textContent = 'That ' + SOCIAL_RULES[err.field].label + ' link is not an official channel link.';
+        } else linksStatus.textContent = "Couldn't save. Try again.";
+      }).then(function () {
+          save.disabled = false;
+      });
+    });
+    dialog.appendChild(links);
+
+    const privacy = el('div', 'modal-section');
+    privacy.appendChild(el('h3', null, 'Privacy'));
+    privacy.appendChild(el('p', 'modal-hint', 'Changes are saved right away.'));
     const status = el('p', 'settings-status');
     status.setAttribute('role', 'status');
-    section.appendChild(status);
-    section.appendChild(el('div', 'settings-list'));
-    const foot = el('div', 'settings-foot');
+    privacy.appendChild(status);
+    privacy.appendChild(el('div', 'settings-list'));
+    dialog.appendChild(privacy);
+
+    const foot = el('div', 'modal-foot');
     foot.appendChild(el('span', null, 'Signed in with Discord'));
     const out = el('button', 'settings-signout', 'Sign out');
     out.type = 'button';
     out.addEventListener('click', function () { auth.logout(); });
     foot.appendChild(out);
-    section.appendChild(foot);
-    const main = document.getElementById('main');
-    main.insertBefore(section, capesSection);
-    return section;
+    dialog.appendChild(foot);
+
+    overlay.appendChild(dialog);
+    overlay.addEventListener('mousedown', function (e) {
+        if (e.target === overlay) closeEditModal();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !overlay.hidden) closeEditModal();
+    });
+    document.body.appendChild(overlay);
+    editModal = overlay;
+    return overlay;
+  }
+
+  function fillLinks() {
+    const socials = (editData && editData.socials) || {};
+    Object.keys(SOCIAL_RULES).forEach(function (key) {
+      const input = editModal.querySelector('input[name="' + key + '"]');
+      input.value = socials[key] || '';
+      input.parentElement.classList.remove('is-invalid');
+      editModal.querySelector('.link-error[data-for="' + key + '"]').textContent = '';
+    });
+  }
+
+  function openEditModal() {
+    if (!editData) return;
+    const overlay = buildEditModal();
+    renderSettings(editData);
+    fillLinks();
+    setSettingsStatus('', '');
+    overlay.querySelector('.modal-status').textContent = '';
+    overlay.hidden = false;
+    document.body.classList.add('modal-open');
+    overlay.querySelector('input').focus();
+  }
+
+  function closeEditModal() {
+    if (!editModal) return;
+    editModal.hidden = true;
+    document.body.classList.remove('modal-open');
+    if (window.location.hash === '#settings') {
+      try {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+      } catch (e) {}
+    }
+    const btn = document.querySelector('.edit-profile-btn');
+    if (btn) btn.focus();
   }
 
   function setSettingsStatus(text, kind) {
-    const status = document.querySelector('#settingsSection .settings-status');
+    const status = editModal.querySelector('.settings-status');
     status.textContent = text || '';
     status.className = 'settings-status' + (kind ? ' is-' + kind : '');
   }
 
   function renderSettings(data) {
-    const list = document.querySelector('#settingsSection .settings-list');
+    const list = editModal.querySelector('.settings-list');
     list.innerHTML = '';
     SETTINGS_OPTIONS.forEach(function (opt) {
       const locked = opt.lite && !data.lite;
@@ -390,8 +559,9 @@
         patch[opt.key] = input.checked;
         setSettingsStatus('Saving...', '');
         auth.savePrivacy(patch).then(function (res) {
+          editData = res;
           renderSettings(res);
-          setSettingsStatus('Saved. Reload the page to see your profile as others do.', 'ok');
+          setSettingsStatus('Saved. Visitors see the change after a reload.', 'ok');
         }).catch(function () {
           input.checked = !input.checked;
           setSettingsStatus("Couldn't save. Check your connection and try again.", 'error');
@@ -401,39 +571,45 @@
     });
   }
 
-  function openSettings(scroll) {
-    const section = document.getElementById('settingsSection');
-    if (!section) return;
-    section.hidden = false;
-    const btn = document.querySelector('.edit-profile-btn');
-    if (btn) btn.setAttribute('aria-expanded', 'true');
-    if (scroll) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  function renderSocials(socials) {
+    let row = document.getElementById('socialRow');
+    const keys = Object.keys(SOCIAL_RULES).filter(function (k) { return socials && socials[k]; });
+    if (!keys.length) {
+      if (row) row.remove();
+      return;
+    }
+    if (!row) {
+      row = el('div', 'social-row');
+      row.id = 'socialRow';
+      const anchor = infoEl.querySelector('.stats');
+      infoEl.insertBefore(row, anchor);
+    }
+    row.innerHTML = '';
+    keys.forEach(function (k) {
+      const a = el('a', 'social-link social-link--' + k);
+      a.href = socials[k];
+      a.target = '_blank';
+      a.rel = 'noopener nofollow ugc';
+      a.innerHTML = SOCIAL_RULES[k].icon;
+      a.appendChild(document.createTextNode(SOCIAL_RULES[k].label));
+      row.appendChild(a);
+    });
   }
 
   function attachOwnerTools(name, isPrivate) {
     if (!auth || !auth.loadToken()) return;
     auth.getPrivacy().then(function (data) {
       if (!data || !(data.accounts || []).some(function (a) { return String(a).toLowerCase() === String(name).toLowerCase(); })) return;
-      const section = settingsSection();
-      if (isPrivate) document.getElementById('main').appendChild(section);
-      renderSettings(data);
+      editData = data;
       const btn = el('button', 'edit-profile-btn');
       btn.type = 'button';
       btn.innerHTML = ICON_GEAR;
       btn.appendChild(document.createTextNode('Edit profile'));
-      btn.setAttribute('aria-controls', 'settingsSection');
-      btn.setAttribute('aria-expanded', 'false');
-      btn.addEventListener('click', function () {
-        const section = document.getElementById('settingsSection');
-        if (section.hidden) openSettings(true);
-        else {
-          section.hidden = true;
-          btn.setAttribute('aria-expanded', 'false');
-        }
-      });
+      btn.setAttribute('aria-haspopup', 'dialog');
+      btn.addEventListener('click', openEditModal);
       const host = isPrivate ? stateEl : document.querySelector('#info .name-row');
       if (host) host.appendChild(btn);
-      if (isPrivate || window.location.hash === '#settings') openSettings(window.location.hash === '#settings');
+      if (window.location.hash === '#settings') openEditModal();
     }).catch(function () {});
   }
 
@@ -449,11 +625,15 @@
         window.location.replace(window.FrostPlayers.prettyPath(own) + '#settings');
         return;
       }
-      showState(ICON_USER_X, 'No Minecraft account linked', 'Sign in to the FrostClient launcher with this Discord account and play once. Your profile and its settings show up here after that.', false);
-      settingsSection();
-      renderSettings(data);
-      document.getElementById('main').appendChild(document.getElementById('settingsSection'));
-      openSettings(false);
+      showState(ICON_USER_X, 'No Minecraft account linked', 'Sign in to the FrostClient launcher with this Discord account and play once. Your profile shows up here after that.', false);
+      editData = data;
+      const btn = el('button', 'edit-profile-btn');
+      btn.type = 'button';
+      btn.innerHTML = ICON_GEAR;
+      btn.appendChild(document.createTextNode('Edit profile'));
+      btn.addEventListener('click', openEditModal);
+      stateEl.appendChild(btn);
+      openEditModal();
     }).catch(function (err) {
       if (err && err.expired) {
         auth.login('/settings');

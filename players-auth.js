@@ -64,7 +64,11 @@
         err.expired = true;
         throw err;
       }
-      if (!res || !res.ok) throw new Error((res && res.error) || 'failed');
+      if (!res || !res.ok) {
+        const err = new Error((res && res.error) || 'failed');
+        err.field = res && res.field;
+        throw err;
+      }
       return res;
     });
   }
@@ -84,6 +88,15 @@
     if (!token) return Promise.reject(new Error('signed_out'));
     privacyPromise = postPrivacy({ token: token, settings: patch });
     return privacyPromise;
+  }
+
+  function saveSocials(socials) {
+    const token = loadToken();
+    if (!token) return Promise.reject(new Error('signed_out'));
+    return postPrivacy({ token: token, socials: socials }).then(function (res) {
+      privacyPromise = Promise.resolve(res);
+      return res;
+    });
   }
 
   function renderNav(data) {
@@ -108,7 +121,7 @@
   }
 
   consumeHandoff();
-  window.FrostPlayersAuth = { loadToken: loadToken, login: login, logout: logout, getPrivacy: getPrivacy, savePrivacy: savePrivacy };
+  window.FrostPlayersAuth = { loadToken: loadToken, login: login, logout: logout, getPrivacy: getPrivacy, savePrivacy: savePrivacy, saveSocials: saveSocials };
   document.addEventListener('DOMContentLoaded', function () {
     renderNav(null);
     getPrivacy().then(renderNav).catch(function () {});
