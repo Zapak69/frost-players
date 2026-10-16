@@ -2,13 +2,19 @@
   const NAME_RE = /^[A-Za-z0-9_]{1,16}$/;
   const ID_RE = /^\d{15,21}$/;
 
-  const PLAYER_PAGE = window.location.protocol === 'file:' ? 'player.html' : 'player';
+  const LOCAL = window.location.protocol === 'file:';
+  const PLAYER_PAGE = LOCAL ? 'player.html' : 'player';
+  const RESERVED = ['player', 'index', 'settings', '404'];
+
+  function prettyPath(value) {
+    const q = String(value || '').trim();
+    if (!NAME_RE.test(q) && !ID_RE.test(q)) return null;
+    if (LOCAL || RESERVED.indexOf(q.toLowerCase()) !== -1) return PLAYER_PAGE + (ID_RE.test(q) ? '?id=' : '?nick=') + encodeURIComponent(q);
+    return '/' + encodeURIComponent(q);
+  }
 
   function playerUrl(value) {
-    const q = String(value || '').trim();
-    if (ID_RE.test(q)) return PLAYER_PAGE + '?id=' + encodeURIComponent(q);
-    if (NAME_RE.test(q)) return PLAYER_PAGE + '?nick=' + encodeURIComponent(q);
-    return null;
+    return prettyPath(value);
   }
 
   function bindSearch(form) {
@@ -39,5 +45,5 @@
   }
 
   document.querySelectorAll('form.search').forEach(bindSearch);
-  window.FrostPlayers = { playerUrl: playerUrl, bindSearch: bindSearch, playerPage: PLAYER_PAGE };
+  window.FrostPlayers = { playerUrl: playerUrl, prettyPath: prettyPath, bindSearch: bindSearch, playerPage: PLAYER_PAGE, reserved: RESERVED };
 })();

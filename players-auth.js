@@ -1,0 +1,116 @@
+(function () {
+  const TOKEN_KEY = 'frostPlayersToken';
+  const PRIVACY_URL = 'https://bot.frostclient.eu/site/privacy';
+  const MAIN_LOGIN = 'https://frostclient.eu/?players_login=';
+  const SAFE_PATH = /^\/(?!\/)[A-Za-z0-9_\/?=&%.-]*$/;
+  let privacyPromise = null;
+
+  function loadToken() {
+    try {
+        return localStorage.getItem(TOKEN_KEY) || '';
+    } catch (e) {
+        return '';
+    }
+  }
+
+  function saveToken(token) {
+    try {
+        localStorage.setItem(TOKEN_KEY, token);
+    } catch (e) {}
+  }
+
+  function clearToken() {
+    privacyPromise = null;
+    try {
+        localStorage.removeItem(TOKEN_KEY);
+    } catch (e) {}
+  }
+
+  function consumeHandoff() {
+    const hash = window.location.hash;
+    if (hash.indexOf('#login=') !== 0) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const token = params.get('login') || '';
+    const target = params.get('r') || '/';
+    if (token) saveToken(token);
+    const clean = SAFE_PATH.test(target) ? target : '/';
+    if (clean !== window.location.pathname + window.location.search) window.location.replace(clean);
+    else history.replaceState(null, '', clean);
+  }
+
+  function login(path) {
+    const target = SAFE_PATH.test(path || '') ? path : window.location.pathname + window.location.search;
+    window.location.href = MAIN_LOGIN + encodeURIComponent(target);
+  }
+
+  function logout() {
+    clearToken();
+    window.location.href = '/';
+  }
+
+  function postPrivacy(body) {
+    return fetch(PRIVACY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      cache: 'no-store'
+    }).then(function (r) {
+        return r.json();
+    }).then(function (res) {
+      if (res && res.error === 'token_expired') {
+        clearToken();
+        renderNav(null);
+        const err = new Error('token_expired');
+        err.expired = true;
+        throw err;
+      }
+      if (!res || !res.ok) throw new Error((res && res.error) || 'failed');
+      return res;
+    });
+  }
+
+  function getPrivacy(force) {
+    const token = loadToken();
+    if (!token) return Promise.resolve(null);
+    if (!privacyPromise || force) privacyPromise = postPrivacy({ token: token }).catch(function (err) {
+      privacyPromise = null;
+      throw err;
+    });
+    return privacyPromise;
+  }
+
+  function savePrivacy(patch) {
+    const token = loadToken();
+    if (!token) return Promise.reject(new Error('signed_out'));
+    privacyPromise = postPrivacy({ token: token, settings: patch });
+    return privacyPromise;
+  }
+
+  function renderNav(data) {
+    const slot = document.getElementById('navAccount');
+    if (!slot) return;
+    slot.innerHTML = '';
+    const link = document.createElement('a');
+    link.className = 'nav-account';
+    if (!loadToken()) {
+      link.href = '#';
+      link.textContent = 'Sign in';
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        login();
+      });
+    } else {
+      const own = data && data.accounts && data.accounts[0];
+      link.href = own ? '/' + encodeURIComponent(own) : '/settings';
+      link.textContent = own ? 'My profile' : 'Profile settings';
+    }
+    slot.appendChild(link);
+  }
+
+  consumeHandoff();
+  window.FrostPlayersAuth = { loadToken: loadToken, login: login, logout: logout, getPrivacy: getPrivacy, savePrivacy: savePrivacy };
+  document.addEventListener('DOMContentLoaded', function () {
+    renderNav(null);
+    getPrivacy().then(renderNav).catch(function () {});
+  });
+})();

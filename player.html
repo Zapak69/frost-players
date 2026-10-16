@@ -6,9 +6,9 @@
 <title>Player | Frost Players</title>
 <meta name="description" content="A FrostClient player profile: skin, Frost cape, playtime and capes.">
 <meta name="theme-color" content="#000000">
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="players.css">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/players.css">
 </head>
 <body>
 <div class="topo-bg" aria-hidden="true">
@@ -23,10 +23,11 @@
 </div>
 <nav>
   <div class="nav-inner">
-    <a class="nav-logo" href="./"><img src="favicon.ico" alt=""/><span>FROST</span> <span class="nav-logo-accent">PLAYERS</span></a>
+    <a class="nav-logo" href="/"><img src="/favicon.ico" alt=""/><span>FROST</span> <span class="nav-logo-accent">PLAYERS</span></a>
     <div class="nav-right">
       <a class="nav-link" href="https://store.frostclient.eu">Store</a>
       <a class="nav-link" href="https://frostclient.eu">FrostClient</a>
+      <span class="nav-account-slot" id="navAccount"></span>
       <form class="search search--nav" role="search" action="player" novalidate>
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input type="search" name="q" placeholder="Search" aria-label="Search players by Minecraft username or Discord ID" autocomplete="off" spellcheck="false"/>
@@ -53,9 +54,10 @@
 <footer>
   <a href="https://frostclient.eu">FrostClient</a> · <a href="https://frostclient.eu/privacy.html">Privacy</a> · <a href="https://frostclient.eu/terms.html">Terms</a> · Not affiliated with Minecraft or Mojang.
 </footer>
-<script src="skinview3d.js"></script>
-<script src="gifdecode.js"></script>
-<script src="players.js"></script>
-<script src="player.js"></script>
+<script src="/skinview3d.js"></script>
+<script src="/gifdecode.js"></script>
+<script src="/players-auth.js"></script>
+<script src="/players.js"></script>
+<script src="/player.js"></script>
 </body>
 </html>

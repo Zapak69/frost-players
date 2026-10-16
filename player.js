@@ -15,8 +15,23 @@
   const ICON_LITE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
   const ICON_DISCORD = '<svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.6 1.3a18.4 18.4 0 0 0-5.6 0L8.6 3a19.7 19.7 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18a19.9 19.9 0 0 0 6 3l1.3-2a12.9 12.9 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.8 19.8 0 0 0 6-3c.5-5.1-.8-9.6-3.6-13.6ZM8 15.3c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.5 8 10.5s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z"/></svg>';
 
+  const ICON_GEAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const SETTINGS_OPTIONS = [
+    { key: 'showPlaytime', label: 'Show playtime', hint: 'Your total FrostClient playtime.' },
+    { key: 'showOnline', label: 'Show online status', hint: 'Whether you are playing right now, and when you were last active.' },
+    { key: 'showDiscord', label: 'Show Discord account', hint: 'Your Discord name. People can also find you by your Discord ID.' },
+    { key: 'privateProfile', label: 'Private profile', hint: 'Hide everything. Visitors only see that the profile is private.', lite: true }
+  ];
+
   const params = new URLSearchParams(window.location.search);
-  const rawQuery = String(params.get('nick') || params.get('id') || params.get('q') || '').trim();
+  let pathSeg = '';
+  try {
+      pathSeg = decodeURIComponent(window.location.pathname.replace(/^\/+|\/+$/g, ''));
+  } catch (e) {}
+  if (/^(player|player\.html|404|404\.html|index\.html)$/i.test(pathSeg) || pathSeg.indexOf('/') !== -1) pathSeg = '';
+  const isSettingsRoute = pathSeg.toLowerCase() === 'settings';
+  const rawQuery = String(params.get('nick') || params.get('id') || params.get('q') || (isSettingsRoute ? '' : pathSeg)).trim();
+  const auth = window.FrostPlayersAuth;
   const profileEl = document.getElementById('profile');
   const infoEl = document.getElementById('info');
   const viewerCard = document.getElementById('viewerCard');
@@ -303,12 +318,154 @@
     renderInfo(data);
     renderCapes(data);
     startViewer(data);
-    const canonical = window.FrostPlayers.playerPage + '?nick=' + encodeURIComponent(data.name);
-    if (window.location.search !== canonical.slice(canonical.indexOf('?'))) {
-      try {
-          history.replaceState(null, '', canonical);
-      } catch (e) {}
+    setCanonical(data.name);
+    attachOwnerTools(data.name, false);
+  }
+
+  function setCanonical(name) {
+    const canonical = window.FrostPlayers.prettyPath(name);
+    if (!canonical) return;
+    const current = window.location.pathname.replace(/^\/+/, '') + window.location.search;
+    if (current === canonical.replace(/^\/+/, '')) return;
+    try {
+        history.replaceState(null, '', canonical + window.location.hash);
+    } catch (e) {}
+  }
+
+  function settingsSection() {
+    let section = document.getElementById('settingsSection');
+    if (section) return section;
+    section = el('section', 'section settings');
+    section.id = 'settingsSection';
+    section.hidden = true;
+    const head = el('div', 'section-head');
+    head.appendChild(el('h2', null, 'Profile settings'));
+    section.appendChild(head);
+    section.appendChild(el('p', 'settings-intro', 'Choose what other people see on your profile. Changes are saved right away.'));
+    const status = el('p', 'settings-status');
+    status.setAttribute('role', 'status');
+    section.appendChild(status);
+    section.appendChild(el('div', 'settings-list'));
+    const foot = el('div', 'settings-foot');
+    foot.appendChild(el('span', null, 'Signed in with Discord'));
+    const out = el('button', 'settings-signout', 'Sign out');
+    out.type = 'button';
+    out.addEventListener('click', function () { auth.logout(); });
+    foot.appendChild(out);
+    section.appendChild(foot);
+    const main = document.getElementById('main');
+    main.insertBefore(section, capesSection);
+    return section;
+  }
+
+  function setSettingsStatus(text, kind) {
+    const status = document.querySelector('#settingsSection .settings-status');
+    status.textContent = text || '';
+    status.className = 'settings-status' + (kind ? ' is-' + kind : '');
+  }
+
+  function renderSettings(data) {
+    const list = document.querySelector('#settingsSection .settings-list');
+    list.innerHTML = '';
+    SETTINGS_OPTIONS.forEach(function (opt) {
+      const locked = opt.lite && !data.lite;
+      const row = el('label', 'settings-row' + (locked ? ' is-locked' : ''));
+      const text = el('div', 'settings-text');
+      const label = el('div', 'settings-label', opt.label);
+      if (opt.lite) label.appendChild(el('span', 'settings-lite', 'LITE'));
+      text.appendChild(label);
+      text.appendChild(el('div', 'settings-hint', locked ? opt.hint + ' Requires FrostClient Lite.' : opt.hint));
+      const sw = el('span', 'switch');
+      const input = el('input');
+      input.type = 'checkbox';
+      input.checked = !!data.settings[opt.key] && !locked;
+      input.disabled = locked;
+      input.setAttribute('aria-label', opt.label);
+      sw.appendChild(input);
+      sw.appendChild(el('span', 'switch-track'));
+      row.appendChild(text);
+      row.appendChild(sw);
+      input.addEventListener('change', function () {
+        const patch = {};
+        patch[opt.key] = input.checked;
+        setSettingsStatus('Saving...', '');
+        auth.savePrivacy(patch).then(function (res) {
+          renderSettings(res);
+          setSettingsStatus('Saved. Reload the page to see your profile as others do.', 'ok');
+        }).catch(function () {
+          input.checked = !input.checked;
+          setSettingsStatus("Couldn't save. Check your connection and try again.", 'error');
+        });
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function openSettings(scroll) {
+    const section = document.getElementById('settingsSection');
+    if (!section) return;
+    section.hidden = false;
+    const btn = document.querySelector('.edit-profile-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    if (scroll) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function attachOwnerTools(name, isPrivate) {
+    if (!auth || !auth.loadToken()) return;
+    auth.getPrivacy().then(function (data) {
+      if (!data || !(data.accounts || []).some(function (a) { return String(a).toLowerCase() === String(name).toLowerCase(); })) return;
+      const section = settingsSection();
+      if (isPrivate) document.getElementById('main').appendChild(section);
+      renderSettings(data);
+      const btn = el('button', 'edit-profile-btn');
+      btn.type = 'button';
+      btn.innerHTML = ICON_GEAR;
+      btn.appendChild(document.createTextNode('Edit profile'));
+      btn.setAttribute('aria-controls', 'settingsSection');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.addEventListener('click', function () {
+        const section = document.getElementById('settingsSection');
+        if (section.hidden) openSettings(true);
+        else {
+          section.hidden = true;
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+      const host = isPrivate ? stateEl : document.querySelector('#info .name-row');
+      if (host) host.appendChild(btn);
+      if (isPrivate || window.location.hash === '#settings') openSettings(window.location.hash === '#settings');
+    }).catch(function () {});
+  }
+
+  function handleSettingsRoute() {
+    document.title = 'Profile settings | Frost Players';
+    if (!auth || !auth.loadToken()) {
+      auth.login('/settings');
+      return;
     }
+    auth.getPrivacy().then(function (data) {
+      const own = data && data.accounts && data.accounts[0];
+      if (own) {
+        window.location.replace(window.FrostPlayers.prettyPath(own) + '#settings');
+        return;
+      }
+      showState(ICON_USER_X, 'No Minecraft account linked', 'Sign in to the FrostClient launcher with this Discord account and play once. Your profile and its settings show up here after that.', false);
+      settingsSection();
+      renderSettings(data);
+      document.getElementById('main').appendChild(document.getElementById('settingsSection'));
+      openSettings(false);
+    }).catch(function (err) {
+      if (err && err.expired) {
+        auth.login('/settings');
+        return;
+      }
+      showState(ICON_ALERT, 'Couldn’t load your settings', 'Check your connection and try again.', false);
+    });
+  }
+
+  if (isSettingsRoute) {
+    handleSettingsRoute();
+    return;
   }
 
   if (!window.FrostPlayers.playerUrl(rawQuery)) {
@@ -327,6 +484,8 @@
       if (res.status === 200 && data.ok && data.private) {
         document.title = data.name + ' | Frost Players';
         showState(ICON_LOCK, data.name, 'This player has a private profile.', true);
+        setCanonical(data.name);
+        attachOwnerTools(data.name, true);
         return;
       }
       if (res.status === 200 && data.ok) return render(data);
