@@ -1,18 +1,18 @@
 :root {
-  --bg: #000000;
-  --surface: #121214;
-  --surface2: #1c1c1e;
-  --surface3: #2c2c2e;
-  --frost-blue: #4fc8f8;
-  --frost-deep: #1a7fc4;
-  --accent-glow: rgba(79,200,248,0.28);
+  --bg: #0a0510;
+  --surface: #120b18;
+  --surface2: #17101f;
+  --surface3: #221829;
+  --frost-blue: #ff7a1a;
+  --frost-deep: #c2410c;
+  --accent-glow: rgba(255,122,26,0.28);
   --lite-a: #ff73fa;
   --lite-b: #b845ff;
   --green: #32d74b;
   --red: #ff6961;
   --text: #f5f5f7;
-  --muted: #8e8e93;
-  --muted-dim: #636366;
+  --muted: #9a8fa6;
+  --muted-dim: #6f6477;
   --border: rgba(255,255,255,0.08);
   --border-strong: rgba(255,255,255,0.14);
   --radius-lg: 24px;
@@ -39,7 +39,7 @@ body {
 }
 
 ::selection {
-  background: rgba(79,200,248,0.35);
+  background: rgba(255,122,26,0.35);
 }
 
 [hidden] {
@@ -167,8 +167,8 @@ nav {
 }
 
 .search input:focus {
-  border-color: rgba(79,200,248,0.6);
-  box-shadow: 0 0 0 4px rgba(79,200,248,0.12);
+  border-color: rgba(255,122,26,0.6);
+  box-shadow: 0 0 0 4px rgba(255,122,26,0.12);
 }
 
 .search button {
@@ -177,7 +177,7 @@ nav {
   font: inherit;
   font-size: 14px;
   font-weight: 700;
-  color: #06121c;
+  color: #1a0a05;
   background: var(--frost-blue);
   border: none;
   border-radius: 980px;
@@ -294,7 +294,7 @@ main {
   aspect-ratio: 4 / 5;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
-  background: radial-gradient(circle at 50% 38%, rgba(79,200,248,0.12), transparent 66%), var(--surface);
+  background: radial-gradient(circle at 50% 38%, rgba(255,122,26,0.12), transparent 66%), var(--surface);
   overflow: hidden;
 }
 
@@ -389,8 +389,8 @@ main {
 
 .badge-lite--gifted {
   color: #04131c;
-  background: linear-gradient(100deg, #7fdcff, #2f9be0);
-  box-shadow: 0 6px 22px -8px rgba(79,200,248,0.65);
+  background: linear-gradient(100deg, #ffc08a, #c2410c);
+  box-shadow: 0 6px 22px -8px rgba(255,122,26,0.65);
 }
 
 .badge-tip {
@@ -513,7 +513,7 @@ main {
 .discord-icon {
   width: 18px;
   height: 18px;
-  color: #8c9eff;
+  color: #c9a0ff;
 }
 
 .stats {
@@ -644,7 +644,7 @@ main {
 }
 
 a.cape-card:hover {
-  border-color: rgba(79,200,248,0.4);
+  border-color: rgba(255,122,26,0.4);
   transform: translateY(-2px);
 }
 
@@ -683,7 +683,7 @@ a.cape-card:focus-visible {
   letter-spacing: 0.6px;
   border-radius: 980px;
   padding: 3px 8px;
-  color: #06121c;
+  color: #1a0a05;
   background: var(--frost-blue);
 }
 
@@ -721,7 +721,7 @@ a.cape-card:focus-visible {
   display: grid;
   place-items: center;
   color: var(--frost-blue);
-  background: rgba(79,200,248,0.1);
+  background: rgba(255,122,26,0.1);
 }
 
 .state-icon svg {
@@ -990,9 +990,9 @@ footer a:hover {
 }
 
 .badge-creator--media {
-  color: #062433;
-  background: linear-gradient(100deg, #d4f2ff, #8fd8ff);
-  box-shadow: 0 6px 22px -8px rgba(143,216,255,0.6);
+  color: #1a0a05;
+  background: linear-gradient(100deg, #d4f2ff, #ffc08a);
+  box-shadow: 0 6px 22px -8px rgba(255,192,138,0.6);
 }
 
 .badge-creator--partner {
@@ -1859,9 +1859,9 @@ body.modal-open {
 }
 
 .badge-rank--staff {
-  color: #06121c;
-  background: linear-gradient(100deg, #4fc8f8, #1a7fc4);
-  box-shadow: 0 6px 22px -8px rgba(79,200,248,0.6);
+  color: #1a0a05;
+  background: linear-gradient(100deg, #ff7a1a, #c2410c);
+  box-shadow: 0 6px 22px -8px rgba(255,122,26,0.6);
 }
 
 .badge-rank--owner {
