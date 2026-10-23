@@ -273,7 +273,8 @@
       const last = !data.online && data.lastSeen ? new Date(data.lastSeen) : null;
       if (last && !isNaN(last.getTime())) {
         pill.textContent = 'Last active ' + timeAgo(last);
-        pill.title = last.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        pill.dataset.tip = last.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+        pill.tabIndex = 0;
       }
       nameRow.appendChild(pill);
     }
@@ -340,7 +341,16 @@
       thumb.style.backgroundImage = 'url("' + capeUrl(cape.file) + '")';
       card.appendChild(thumb);
       card.appendChild(el('div', 'cape-card-name', cape.name || cape.id));
-      if (data.cape && data.cape.id === cape.id) card.appendChild(el('span', 'cape-card-tag', 'Equipped'));
+      const tags = el('div', 'cape-card-tags');
+      if (data.cape && data.cape.id === cape.id) tags.appendChild(el('span', 'cape-card-tag', 'Equipped'));
+      const until = cape.limitedUntil ? Date.parse(cape.limitedUntil) : NaN;
+      if (Number.isFinite(until)) {
+        const limited = el('span', 'cape-card-tag is-limited', 'Limited');
+        limited.dataset.tip = 'Limited until ' + new Date(until - 1).toLocaleDateString('en-US', { dateStyle: 'long' });
+        limited.tabIndex = 0;
+        tags.appendChild(limited);
+      }
+      if (tags.childNodes.length) card.appendChild(tags);
       if (cape.mature) card.appendChild(el('span', 'cape-card-tag is-mature', 'Mature'));
       grid.appendChild(card);
     });
