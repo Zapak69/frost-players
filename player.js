@@ -965,6 +965,7 @@
     };
     const requests = group('Requests');
     requests.appendChild(settingToggle('Accept friend requests', 'Let other players send you friend requests here and in game.', st.acceptRequests !== false, function (v, input) { saveFriendSetting({ acceptRequests: v }, input); }));
+    requests.appendChild(settingToggle('Accept messages from friends', 'When off, friends can\'t send you messages in game.', st.acceptDms !== false, function (v, input) { saveFriendSetting({ acceptDms: v }, input); }));
     requests.appendChild(settingToggle('Friend notifications', 'Show a pop-up in game when friends come online or send you a request.', st.toasts !== false, function (v, input) { saveFriendSetting({ toasts: v }, input); }));
     const display = group('Display', 'Not available on 1.21.4, 1.21.5 and 1.21.10.');
     display.appendChild(settingToggle('Friend icon next to names', 'A small icon next to your friends in the tab list and above their heads.', st.showIcon !== false, function (v, input) { saveFriendSetting({ showIcon: v }, input); }));
