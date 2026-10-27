@@ -4,6 +4,8 @@
   if (!section || !list) return;
   const API = 'https://bot.frostclient.eu/players/leaderboard';
   const MEDALS = ['is-gold', 'is-silver', 'is-bronze'];
+  const BOLT = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
+  const DISCORD = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.6 1.3a18.4 18.4 0 0 0-5.6 0L8.6 3a19.7 19.7 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18a19.9 19.9 0 0 0 6 3l1.3-2a12.9 12.9 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2a19.8 19.8 0 0 0 6-3c.5-5.1-.8-9.6-3.6-13.6ZM8 15.3c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.5 8 10.5s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z"/></svg>';
 
   function hours(ms) {
     const h = ms / 3600000;
@@ -39,7 +41,27 @@
     }
     const name = document.createElement('span');
     name.className = 'leaderboard-name';
-    name.textContent = p.name;
+    const nameText = document.createElement('span');
+    nameText.className = 'leaderboard-name-text';
+    nameText.textContent = p.name;
+    name.appendChild(nameText);
+    if (p.lite) {
+      const lite = document.createElement('span');
+      lite.className = 'leaderboard-badge leaderboard-badge--lite';
+      lite.setAttribute('data-tip', 'FrostClient Lite');
+      lite.setAttribute('aria-label', 'FrostClient Lite');
+      lite.innerHTML = BOLT;
+      name.appendChild(lite);
+    }
+    if (p.discord && p.discord.username) {
+      const discord = document.createElement('span');
+      discord.className = 'leaderboard-badge leaderboard-badge--discord';
+      discord.setAttribute('data-tip', '@' + p.discord.username);
+      discord.setAttribute('aria-label', 'Discord: ' + p.discord.username);
+      discord.tabIndex = 0;
+      discord.innerHTML = DISCORD;
+      name.appendChild(discord);
+    }
     const time = document.createElement('span');
     time.className = 'leaderboard-time';
     time.textContent = hours(p.playtimeMs);

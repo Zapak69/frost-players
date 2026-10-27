@@ -124,11 +124,49 @@
 
 .leaderboard-name {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 15px;
   font-weight: 600;
+}
+
+.leaderboard-name-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.leaderboard-badge {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+}
+
+.leaderboard-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.leaderboard-badge--lite {
+  background: rgba(255, 115, 250, 0.14);
+  color: var(--lite-a);
+}
+
+.leaderboard-badge--discord {
+  background: rgba(88, 101, 242, 0.16);
+  color: #8b95ff;
+  cursor: help;
+}
+
+.leaderboard-badge--discord:focus-visible {
+  outline: 2px solid #8b95ff;
+  outline-offset: 2px;
 }
 
 .leaderboard-time {
