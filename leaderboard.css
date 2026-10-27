@@ -164,6 +164,22 @@
   cursor: help;
 }
 
+.leaderboard-badge--modrinth {
+  background: rgba(27, 217, 106, 0.14);
+  color: #1bd96a;
+  cursor: help;
+}
+
+.leaderboard-badge--modrinth svg {
+  width: 12px;
+  height: 12px;
+}
+
+.leaderboard-badge--modrinth:focus-visible {
+  outline: 2px solid #1bd96a;
+  outline-offset: 2px;
+}
+
 .leaderboard-badge--discord:focus-visible {
   outline: 2px solid #8b95ff;
   outline-offset: 2px;
