@@ -9,6 +9,7 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/players.css">
+<link rel="stylesheet" href="/leaderboard.css">
 <link rel="stylesheet" href="halloween.css">
 </head>
 <body>
@@ -47,6 +48,16 @@
       <p class="home-hint">Tip: open any profile directly at player.frostclient.eu/<span class="home-hint-mono">name</span>. Sign in to edit your own.</p>
     </div>
   </section>
+  <section class="leaderboard" id="leaderboard" aria-labelledby="leaderboardTitle">
+    <div class="leaderboard-head">
+      <div>
+        <p class="leaderboard-eyebrow">Leaderboard</p>
+        <h2 id="leaderboardTitle">Most active players</h2>
+      </div>
+      <p class="leaderboard-note">Total time played on FrostClient</p>
+    </div>
+    <ol class="leaderboard-list" id="leaderboardList"></ol>
+  </section>
 </main>
 <footer>
   <a href="https://frostclient.eu">FrostClient</a> · <a href="https://frostclient.eu/privacy.html">Privacy</a> · <a href="https://frostclient.eu/terms.html">Terms</a> · Not affiliated with Minecraft or Mojang.
@@ -54,6 +65,7 @@
 <script src="/players-auth.js"></script>
 <script src="/players-friends.js"></script>
 <script src="/players.js"></script>
+<script src="/players-leaderboard.js"></script>
 <script src="halloween.js"></script>
 </body>
 </html>
