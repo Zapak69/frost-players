@@ -4,6 +4,7 @@
   const FRIENDS_URL = 'https://bot.frostclient.eu/site/friends';
   const MAIN_LOGIN = 'https://frostclient.eu/?players_login=';
   const SAFE_PATH = /^\/(?!\/)[A-Za-z0-9_\/?=&%.-]*$/;
+  const HANDOFF_KEY = 'frostPlayersHandoff';
   let privacyPromise = null;
   let friendsPromise = null;
 
@@ -29,21 +30,52 @@
     } catch (e) {}
   }
 
+  function newHandoffNonce() {
+    try {
+      const buf = new Uint8Array(16);
+      crypto.getRandomValues(buf);
+      const nonce = Array.from(buf).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+      sessionStorage.setItem(HANDOFF_KEY, nonce);
+      return nonce;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function takeHandoffNonce() {
+    try {
+      const nonce = sessionStorage.getItem(HANDOFF_KEY) || '';
+      sessionStorage.removeItem(HANDOFF_KEY);
+      return nonce;
+    } catch (e) {
+      return '';
+    }
+  }
+
   function consumeHandoff() {
     const hash = window.location.hash;
     if (hash.indexOf('#login=') !== 0) return;
     const params = new URLSearchParams(hash.slice(1));
     const token = params.get('login') || '';
     const target = params.get('r') || '/';
-    if (token) saveToken(token);
+    const nonce = params.get('n') || '';
+    const expected = takeHandoffNonce();
     const clean = SAFE_PATH.test(target) ? target : '/';
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    const fresh = token && !nonce ? newHandoffNonce() : '';
+    if (fresh) {
+      window.location.href = MAIN_LOGIN + encodeURIComponent(clean) + '&n=' + fresh;
+      return;
+    }
+    if (token && expected && nonce === expected) saveToken(token);
     if (clean !== window.location.pathname + window.location.search) window.location.replace(clean);
     else history.replaceState(null, '', clean);
   }
 
   function login(path) {
     const target = SAFE_PATH.test(path || '') ? path : window.location.pathname + window.location.search;
-    window.location.href = MAIN_LOGIN + encodeURIComponent(target);
+    const nonce = newHandoffNonce();
+    window.location.href = MAIN_LOGIN + encodeURIComponent(target) + (nonce ? '&n=' + nonce : '');
   }
 
   function logout() {
