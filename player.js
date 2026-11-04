@@ -1,6 +1,6 @@
 (function () {
-  const API = 'https://bot.frostclient.eu/players/profile';
-  const CAPES_BASE = 'https://bot.frostclient.eu/launcher/capes/';
+  const API = 'https://api.frostclient.eu/players/profile';
+  const CAPES_BASE = 'https://cdn.frostclient.eu/launcher/capes/';
   const STORE_CAPE = 'https://store.frostclient.eu/cloak?id=';
   const DEFAULT_CAPE = { id: 'default', name: 'Default', file: 'default.png', animated: false, mature: false };
   const ANIM_W = 512;

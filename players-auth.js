@@ -1,7 +1,7 @@
 (function () {
   const TOKEN_KEY = 'frostPlayersToken';
-  const PRIVACY_URL = 'https://bot.frostclient.eu/site/privacy';
-  const FRIENDS_URL = 'https://bot.frostclient.eu/site/friends';
+  const PRIVACY_URL = 'https://api.frostclient.eu/site/privacy';
+  const FRIENDS_URL = 'https://api.frostclient.eu/site/friends';
   const MAIN_LOGIN = 'https://frostclient.eu/?players_login=';
   const SAFE_PATH = /^\/(?!\/)[A-Za-z0-9_\/?=&%.-]*$/;
   const HANDOFF_KEY = 'frostPlayersHandoff';
